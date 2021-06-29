@@ -107,6 +107,12 @@ services/...
 <a name="running"></a>
 # How to run the example - step-by-step
 
+## Prerequisites 
+* Python 3
+* gcloud
+* helm
+* kubectl
+
 ## Setup Python environment
 
 To make collaboration go smoothly, we really want to make sure that every developer can reproduce the same development environment, which means everybody uses the same versions of Python, and the same Python dependencies.
@@ -137,11 +143,26 @@ pip install -r requirements.txt
 
 ```
 gcloud auth login
+gcloud auth application-default login
 ```
 
 <!-- TODO: verify this. Application default login too? -->
 
 <!-- unset GOOGLE_APPLICATION_CREDENTIALS -->
+
+## Edge setup script
+To setup the project with Google Cloud run:
+```
+python edge.py setup
+```
+
+This command will run the configuration wizard to create a config (if `edge.yaml` does not exist), and set up 
+Google Cloud resources according to the configuration
+
+To explicitly run configuration wizard and override the config:
+```
+python edge.py config
+```
 
 ## Provision the dataset Google Cloud storage
 
