@@ -3,6 +3,7 @@ import textwrap
 from typing import Optional
 from edge.config import *
 from edge.sacred import setup_sacred
+from edge.enable_api import enable_api
 from serde.yaml import to_yaml, from_yaml
 
 
@@ -92,7 +93,7 @@ def setup_edge(_config: EdgeConfig):
     print(to_yaml(_config))
     print()
 
-    print("# TODO Enable Google Cloud APIs")
+    enable_api(_config)
     print("# TODO Provision Google Storage Bucket")
     print("# TODO Setup DVC if not set up")
 
