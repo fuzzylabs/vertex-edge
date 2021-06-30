@@ -2,3 +2,4 @@ pyserde==0.4.0
 google-cloud-container==2.4.1
 google-cloud-secret-manager==2.5.0
 google_cloud_aiplatform==1.1.1
+dvc[gs]==2.4.3

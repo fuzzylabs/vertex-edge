@@ -1,0 +1,2 @@
+['remote "storage"']
+    url = gs://fashion-mnist-model/dvcstore

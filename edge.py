@@ -7,6 +7,7 @@ from edge.sacred import setup_sacred, get_omniboard
 from edge.enable_api import enable_api
 from edge.endpoint import setup_endpoint
 from edge.storage import setup_storage
+from edge.dvc import setup_dvc
 from serde.yaml import to_yaml, from_yaml
 
 
@@ -108,7 +109,7 @@ def setup_edge(_config: EdgeConfig):
 
     storage_bucket_output = setup_storage(_config)
 
-    print("# TODO Setup DVC if not set up")
+    setup_dvc(_config, storage_bucket_output)
 
     sacred_output = setup_sacred(_config)
 
@@ -126,14 +127,14 @@ def setup_edge(_config: EdgeConfig):
     with open("edge-output.yaml", "w") as f:
         f.write(to_yaml(output))
 
-    print('''
-    The output has been written to `edge-output.yaml`.
-    Commit it to git, for others to use.
-    
-    ```
-    git add edge-output.yaml && git commit -m "Add vertex:edge output" && git push
-    ```
-    ''')
+    # print('''
+    # The output has been written to `edge-output.yaml`.
+    # Commit it to git, for others to use.
+    #
+    # ```
+    # git add edge-output.yaml && git commit -m "Add vertex:edge output" && git push
+    # ```
+    # ''')
 
 
 if __name__ == "__main__":
