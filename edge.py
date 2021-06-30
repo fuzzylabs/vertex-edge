@@ -115,24 +115,23 @@ def setup_edge(_config: EdgeConfig):
 
     vertex_endpoint_output = setup_endpoint(_config)
 
-    output = EdgeState(
+    state = EdgeState(
         vertex_endpoint_output,
         sacred_output,
         storage_bucket_output,
     )
-    print("Setup finished")
-    print("Output:")
-    print(to_yaml(output))
+    state.save(_config)
 
-    with open("edge-output.yaml", "w") as f:
-        f.write(to_yaml(output))
+    print()
+    print("Setup finished")
+    print("Resulting state (saved to Google Storage):")
+    print(to_yaml(state))
 
     # print('''
-    # The output has been written to `edge-output.yaml`.
-    # Commit it to git, for others to use.
+    # Commit it changes to git, for others to use.
     #
     # ```
-    # git add edge-output.yaml && git commit -m "Add vertex:edge output" && git push
+    # git add . && git commit -m "vertex:edge setup" && git push
     # ```
     # ''')
 
@@ -177,4 +176,5 @@ if __name__ == "__main__":
         setup_edge(config)
     elif args.command == "omniboard":
         config = load_config(args.config)
-        print(f"Omniboard: {get_omniboard(config)}")
+        state = EdgeState.load(config)
+        print(f"Omniboard: {state.sacred_state.external_omniboard_string}")
