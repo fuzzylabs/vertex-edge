@@ -2,8 +2,11 @@ import argparse
 import textwrap
 from typing import Optional
 from edge.config import *
+from edge.state import EdgeState
 from edge.sacred import setup_sacred, get_omniboard
 from edge.enable_api import enable_api
+from edge.endpoint import setup_endpoint
+from edge.storage import setup_storage
 from serde.yaml import to_yaml, from_yaml
 
 
@@ -102,16 +105,35 @@ def setup_edge(_config: EdgeConfig):
     print()
 
     enable_api(_config)
-    print("# TODO Provision Google Storage Bucket")
+
+    storage_bucket_output = setup_storage(_config)
+
     print("# TODO Setup DVC if not set up")
 
     sacred_output = setup_sacred(_config)
 
-    print("# TODO Provision Vertex AI Endpoint")
+    vertex_endpoint_output = setup_endpoint(_config)
 
+    output = EdgeState(
+        vertex_endpoint_output,
+        sacred_output,
+        storage_bucket_output,
+    )
     print("Setup finished")
-    print("Sacred:")
-    print(to_yaml(sacred_output))
+    print("Output:")
+    print(to_yaml(output))
+
+    with open("edge-output.yaml", "w") as f:
+        f.write(to_yaml(output))
+
+    print('''
+    The output has been written to `edge-output.yaml`.
+    Commit it to git, for others to use.
+    
+    ```
+    git add edge-output.yaml && git commit -m "Add vertex:edge output" && git push
+    ```
+    ''')
 
 
 if __name__ == "__main__":

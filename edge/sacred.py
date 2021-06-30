@@ -1,22 +1,12 @@
 import os
 import subprocess
 import time
-from dataclasses import dataclass
-from serde import serialize, deserialize
 from .config import EdgeConfig
 from google.cloud import container_v1
 from google.cloud.container_v1 import Cluster
 from google.api_core.exceptions import NotFound
 from google.cloud import secretmanager_v1
-
-
-@deserialize
-@serialize
-@dataclass
-class SacredOutputs:
-    internal_mongo_string: str
-    external_mongo_string: str
-    external_omniboard_string: str
+from .state import SacredState
 
 
 def create_cluster(project_id: str, region: str, cluster_name: str) -> Cluster:
@@ -43,32 +33,52 @@ def create_cluster(project_id: str, region: str, cluster_name: str) -> Cluster:
 
 
 def get_credentials(project_id: str, region: str, cluster_name: str):
-    os.system(
-        f"gcloud container clusters get-credentials {cluster_name} --project {project_id} --region {region}"
-    )
+    try:
+        subprocess.check_output(
+            f"gcloud container clusters get-credentials {cluster_name} --project {project_id} --region {region}"
+        )
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print("Error occurred while getting kubernetes cluster credentials")
+        exit(1)
 
 
 def get_mongodb_password():
-    return subprocess.check_output(
-        "kubectl get secret --namespace default mongodb -o jsonpath=\"{.data.mongodb-password}\" | base64 --decode",
-        shell=True
-    ).decode("utf-8")
+    try:
+        return subprocess.check_output(
+            "kubectl get secret --namespace default mongodb -o jsonpath=\"{.data.mongodb-password}\" | base64 --decode",
+            shell=True
+        ).decode("utf-8")
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print("Error occurred while getting MongoDB password")
+        exit(1)
 
 
 def get_lb_ip(name):
-    return subprocess.check_output(
-        f"kubectl get service --namespace default {name} -o jsonpath=\"{{.status.loadBalancer.ingress[0].ip}}\"",
-        shell=True
-    ).decode("utf-8")
+    try:
+        return subprocess.check_output(
+            f"kubectl get service --namespace default {name} -o jsonpath=\"{{.status.loadBalancer.ingress[0].ip}}\"",
+            shell=True
+        ).decode("utf-8")
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print(f"Error occurred while getting IP for {name}")
+        exit(1)
 
 
 def install_mongodb() -> (str, str):
     print("## Installing MongoDB")
-    os.system('''
-        helm repo add bitnami https://charts.bitnami.com/bitnami
-        helm upgrade -i --wait mongodb bitnami/mongodb --set auth.username=sacred,auth.database=sacred
-        kubectl expose deployment mongodb --name mongodb-lb --type LoadBalancer --port 60000 --target-port 27017
-    ''')
+    try:
+        subprocess.check_output('''
+            helm repo add bitnami https://charts.bitnami.com/bitnami
+            helm upgrade -i --wait mongodb bitnami/mongodb --set auth.username=sacred,auth.database=sacred
+            kubectl expose deployment mongodb --name mongodb-lb --type LoadBalancer --port 60000 --target-port 27017
+        ''')
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print("Error occurred while installing MongoDB with helm chart")
+        exit(1)
 
     password = get_mongodb_password()
 
@@ -95,7 +105,12 @@ def install_mongodb() -> (str, str):
 
 def install_omniboard() -> str:
     print("## Installing Omniboard")
-    os.system("kubectl apply -f edge/k8s/omniboard.yaml")
+    try:
+        subprocess.check_output("kubectl apply -f edge/k8s/omniboard.yaml")
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print("Error occurred while applying Omniboard's configuration")
+        exit(1)
 
     external_ip = get_lb_ip("omniboard-lb")
     while external_ip == "":
@@ -156,9 +171,9 @@ def setup_sacred(_config: EdgeConfig):
 
     external_omniboard_string = install_omniboard()
 
-    return SacredOutputs(
-        internal_mongo_string=internal_mongo_string,
-        external_mongo_string=external_mongo_string,
+    return SacredState(
+        # internal_mongo_string=internal_mongo_string,
+        # external_mongo_string=external_mongo_string,
         external_omniboard_string=external_omniboard_string
     )
 
