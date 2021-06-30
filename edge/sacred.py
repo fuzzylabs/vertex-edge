@@ -1,12 +1,13 @@
+import json
 import os
 import subprocess
 import time
-from .config import EdgeConfig
+from edge.config import EdgeConfig
 from google.cloud import container_v1
 from google.cloud.container_v1 import Cluster
 from google.api_core.exceptions import NotFound
 from google.cloud import secretmanager_v1
-from .state import SacredState
+from edge.state import SacredState
 
 
 def create_cluster(project_id: str, region: str, cluster_name: str) -> Cluster:
@@ -35,7 +36,8 @@ def create_cluster(project_id: str, region: str, cluster_name: str) -> Cluster:
 def get_credentials(project_id: str, region: str, cluster_name: str):
     try:
         subprocess.check_output(
-            f"gcloud container clusters get-credentials {cluster_name} --project {project_id} --region {region}"
+            f"gcloud container clusters get-credentials {cluster_name} --project {project_id} --region {region}",
+            shell=True
         )
     except subprocess.CalledProcessError as e:
         print(e.output)
@@ -67,14 +69,47 @@ def get_lb_ip(name):
         exit(1)
 
 
-def install_mongodb() -> (str, str):
-    print("## Installing MongoDB")
+def check_mongodb_installed() -> bool:
+    helm_charts = json.loads(subprocess.check_output("helm list -o json", shell=True).decode("utf-8"))
+    for chart in helm_charts:
+        if chart["name"] == "mongodb":
+            return True
+    return False
+
+
+def check_mongodb_lb_installed() -> bool:
     try:
-        subprocess.check_output('''
-            helm repo add bitnami https://charts.bitnami.com/bitnami
-            helm upgrade -i --wait mongodb bitnami/mongodb --set auth.username=sacred,auth.database=sacred
-            kubectl expose deployment mongodb --name mongodb-lb --type LoadBalancer --port 60000 --target-port 27017
-        ''')
+        subprocess.check_output(
+            "kubectl get service mongodb-lb -o json",
+            stderr=subprocess.STDOUT,
+            shell=True
+        )
+    except subprocess.CalledProcessError as e:
+        if e.output.decode("utf-8") == "Error from server (NotFound): services \"mongodb-lb\" not found\n":
+            return False
+        else:
+            raise e
+    return True
+
+
+def install_mongodb() -> (str, str):
+    try:
+        print("## Installing MongoDB")
+        if check_mongodb_installed():
+            print("MongoDB is already installed")
+        else:
+            subprocess.check_output('''
+                helm repo add bitnami https://charts.bitnami.com/bitnami
+                helm upgrade -i --wait mongodb bitnami/mongodb --set auth.username=sacred,auth.database=sacred
+            ''', shell=True)
+
+        print("## Exposing MongoDB")
+        if check_mongodb_lb_installed():
+            print("MongoDB is already exposed")
+        else:
+            subprocess.check_output('''
+                kubectl expose deployment mongodb --name mongodb-lb --type LoadBalancer --port 60000 --target-port 27017
+            ''', shell=True)
     except subprocess.CalledProcessError as e:
         print(e.output)
         print("Error occurred while installing MongoDB with helm chart")
@@ -97,8 +132,8 @@ def install_mongodb() -> (str, str):
     )
 
     print("MongoDB has been installed.")
-    print("Internal connection string: ", internal_connection_string)
-    print("External connection string: ", external_connection_string)
+    print("Internal connection string: ", f"mongodb://sacred:*****@mongodb/sacred")
+    print("External connection string: ", f"mongodb://sacred:*****@{external_ip}:60000/sacred")
 
     return internal_connection_string, external_connection_string
 
@@ -106,7 +141,7 @@ def install_mongodb() -> (str, str):
 def install_omniboard() -> str:
     print("## Installing Omniboard")
     try:
-        subprocess.check_output("kubectl apply -f edge/k8s/omniboard.yaml")
+        subprocess.check_output("kubectl apply -f edge/k8s/omniboard.yaml", shell=True)
     except subprocess.CalledProcessError as e:
         print(e.output)
         print("Error occurred while applying Omniboard's configuration")
@@ -119,7 +154,6 @@ def install_omniboard() -> str:
         external_ip = get_lb_ip("omniboard-lb")
 
     print(f"Omniboard is installed and available at http://{external_ip}:9000")
-
     return f"http://{external_ip}:9000"
 
 
@@ -172,8 +206,6 @@ def setup_sacred(_config: EdgeConfig):
     external_omniboard_string = install_omniboard()
 
     return SacredState(
-        # internal_mongo_string=internal_mongo_string,
-        # external_mongo_string=external_mongo_string,
         external_omniboard_string=external_omniboard_string
     )
 
