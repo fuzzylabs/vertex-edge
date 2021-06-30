@@ -1,0 +1,16 @@
+google_cloud_project:
+  project_id: fuzzylabs
+  region: europe-west4
+sacred:
+  gke_cluster_name: sacred
+  mongodb_connection_string_secret: sacred-mongodb-connection-string
+storage_bucket:
+  bucket_name: fashion-mnist-model
+  dvc_store_directory: dvcstore
+  vertex_jobs_directory: vertex
+vertex:
+  model_name: fashion-mnist
+  prediction_server_image: fashion-mnist-prediction
+web_app:
+  cloud_run_service_name: fashion-mnist-webapp
+  webapp_server_image: fashion-mnist-webapp

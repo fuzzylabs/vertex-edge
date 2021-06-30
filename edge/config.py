@@ -31,6 +31,7 @@ class SacredConfig:
 @serialize
 @dataclass
 class VertexConfig:
+    model_name: str
     prediction_server_image: str
 
 

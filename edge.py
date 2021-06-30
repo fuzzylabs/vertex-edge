@@ -2,7 +2,7 @@ import argparse
 import textwrap
 from typing import Optional
 from edge.config import *
-from edge.sacred import setup_sacred
+from edge.sacred import setup_sacred, get_omniboard
 from edge.enable_api import enable_api
 from serde.yaml import to_yaml, from_yaml
 
@@ -24,9 +24,20 @@ def create_config(path: str) -> EdgeConfig:
     )
 
     print()
+    print("Configuring Vertex AI")
+    model_name = input("Model name: ").strip()
+    vertex = VertexConfig(
+        model_name=model_name,
+        prediction_server_image=input_with_default(
+            f"Vertex AI prediction server image [{model_name}-prediction]: ",
+            f"{model_name}-prediction"
+        ),
+    )
+
+    print()
     print("Configuring Storage Bucket")
     storage_bucket = StorageBucketConfig(
-        bucket_name=input("Storage bucket name: ").strip(),
+        bucket_name=input_with_default(f"Storage bucket name [{vertex.model_name}-model]: ", f"{model_name}-model"),
         dvc_store_directory=input_with_default("DVC store directory [dvcstore]: ", "dvcstore"),
         vertex_jobs_directory=input_with_default("Vertex AI jobs directory [vertex]: ", "vertex")
     )
@@ -42,16 +53,13 @@ def create_config(path: str) -> EdgeConfig:
     )
 
     print()
-    print("Configuring Vertex AI")
-    vertex = VertexConfig(
-        prediction_server_image=input("Vertex AI prediction server image: ").strip(),
-    )
-
-    print()
     print("Configuring web app")
     web_app = WebAppConfig(
-        webapp_server_image=input("Web app server image: ").strip(),
-        cloud_run_service_name=input("Cloud run service name: ").strip()
+        webapp_server_image=input_with_default(f"Web app server image [{model_name}-webapp]: ", f"{model_name}-webapp"),
+        cloud_run_service_name=input_with_default(
+            f"Cloud run service name [{model_name}-webapp]: ",
+            f"{model_name}-webapp"
+        )
     )
 
     print()
@@ -114,12 +122,14 @@ if __name__ == "__main__":
         choices=[
             "config",
             "setup",
+            "omniboard",
         ],
         help=textwrap.dedent('''\
             Command to run
             config -- create a vertex:edge configuration.
             setup -- setup the project on Google Cloud, according to the configuration 
                      (and create configuration is does not exist), default.
+            omniboard -- get Omniboard URL, if it is deployed
             ''')
     )
     parser.add_argument(
@@ -142,3 +152,6 @@ if __name__ == "__main__":
         else:
             print("Configuration is found")
         setup_edge(config)
+    elif args.command == "omniboard":
+        config = load_config(args.config)
+        print(f"Omniboard: {get_omniboard(config)}")
