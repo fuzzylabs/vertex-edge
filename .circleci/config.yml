@@ -44,6 +44,8 @@ jobs:
     steps:
       - checkout:
           path: ~/project
+      - python/install-packages:
+          pkg-manager: pip
       - setup_remote_docker
       - gcp-cli/install
       - gcp-cli/initialize
@@ -58,6 +60,8 @@ jobs:
     steps:
       - checkout:
           path: ~/project
+      - python/install-packages:
+          pkg-manager: pip
       - gcp-cli/install
       - gcp-cli/initialize
       - run:
@@ -70,14 +74,14 @@ workflows:
     jobs:
       - build-docker:
           name: prediction-server-build-docker
-          image_name: gcr.io/fuzzylabs/fashion-mnist-prediction-server
-          dockerfile_path: examples/reference
-#          filters:
+          edge_command: docker-vertex-prediction
+      #          filters:
 #            branches:
 #              only:
 #                - master
       - run-dvc-pipeline:
           name: reference-example-dvc-pipeline
+          pipeline_name: fashion
           requires:
             - prediction-server-build-docker
 #          filters:
