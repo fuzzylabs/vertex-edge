@@ -151,6 +151,17 @@ gcloud auth application-default login
 <!-- unset GOOGLE_APPLICATION_CREDENTIALS -->
 
 ## Edge setup script
+
+[comment]: <> (TODO:)
+
+[comment]: <> (* What resources it sets up)
+
+[comment]: <> (* CircleCI setup)
+
+[comment]: <> (* DVC seeding)
+
+[comment]: <> (* Running pipelines, deploying model and webapp from local machine)
+
 To setup the project with Google Cloud run:
 ```
 python edge.py setup
