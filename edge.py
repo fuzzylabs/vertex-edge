@@ -1,4 +1,5 @@
 import argparse
+import os
 import textwrap
 from typing import Optional
 from edge.config import *
@@ -127,13 +128,22 @@ def setup_edge(_config: EdgeConfig):
     print("Resulting state (saved to Google Storage):")
     print(to_yaml(state))
 
-    # print('''
-    # Commit it changes to git, for others to use.
-    #
-    # ```
-    # git add . && git commit -m "vertex:edge setup" && git push
-    # ```
-    # ''')
+
+def build_docker(docker_path, image_name, tag="latest"):
+    os.system(
+        f"docker build -t {image_name}:{tag} {docker_path} &&"
+        f"docker push {image_name}:{tag}"
+    )
+
+
+def deploy_cloud_run(_config: EdgeConfig, _state: EdgeState, tag: str):
+    os.system(
+        f"gcloud run deploy {_config.web_app.cloud_run_service_name} \
+        --image gcr.io/{_config.google_cloud_project.project_id}/{_config.web_app.webapp_server_image}:{tag} \
+        --set-env-vars ENDPOINT_ID={_state.vertex_endpoint_state.endpoint_resource_name} \
+        --platform managed \
+        --project {_config.google_cloud_project.project_id} --region {_config.google_cloud_project.region}"
+    )
 
 
 if __name__ == "__main__":
@@ -146,14 +156,20 @@ if __name__ == "__main__":
             "setup",
             "omniboard",
             "vertex-endpoint",
+            "docker-webapp",
+            "docker-vertex-prediction",
+            "cloud-run-webapp"
         ],
         help=textwrap.dedent('''\
-            Command to run
+            Command to run:
             config -- create a vertex:edge configuration.
             setup -- setup the project on Google Cloud, according to the configuration 
                      (and create configuration is does not exist), default.
             omniboard -- get Omniboard URL, if it is deployed
             vertex-endpoint -- get Vertex AI endpoint
+            docker-webapp -- build Docker container for the web app and push it to Google Container Registry
+            docker-vertex-prediction -- build Docker container for the prediction server and push it to Google Container Registry
+            cloud-run-webapp -- deploy the webapp to cloud run
             ''')
     )
     parser.add_argument(
@@ -183,3 +199,20 @@ if __name__ == "__main__":
         config = load_config(args.config)
         state = EdgeState.load(config)
         print(f"{state.vertex_endpoint_state.endpoint_resource_name}")
+    elif args.command == "docker-vertex-prediction":
+        tag = os.environ.get("TAG") or "latest"
+        config = load_config(args.config)
+        path = "models/pipelines/fashion"
+        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.vertex.prediction_server_image}"
+        build_docker(path, image_name, tag)
+    elif args.command == "docker-webapp":
+        tag = os.environ.get("TAG") or "latest"
+        config = load_config(args.config)
+        path = "services/fashion-web"
+        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
+        build_docker(path, image_name, tag)
+    elif args.command == "cloud-run-webapp":
+        tag = os.environ.get("TAG") or "latest"
+        config = load_config(args.config)
+        state = EdgeState.load(config)
+        deploy_cloud_run(config, state, tag)

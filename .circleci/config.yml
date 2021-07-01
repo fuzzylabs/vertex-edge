@@ -4,28 +4,6 @@ orbs:
   python: circleci/python@1.4.0
   gcp-cli: circleci/gcp-cli@2.2.0
 
-parameters:
-  gcr_region:
-    type: string
-    default: gcr.io
-
-  gcr_project_id:
-    type: string
-    default: fuzzylabs
-
-  webapp_name:
-    type: string
-    default: fashion-mnist-webapp
-
-  endpoint_id:
-    type: string
-    default: "6923967767733338112"
-
-executors:
-  google-cloud:
-    docker:
-      - image: google/cloud-sdk
-
 commands:
   dvc_google_auth:
     description: Configure the DVC to use Google Cloud service account
@@ -58,30 +36,25 @@ jobs:
           command: |
             PYTHONPATH=../../../ GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json python3 deploy-vertex.py
   build-docker:
-    executor: google-cloud
+    executor: python/default
     parameters:
-      image_name:
+      edge_command:
         type: string
-      dockerfile_path:
-        type: string
-    working_directory: ~/project/<< parameters.dockerfile_path >>
+    working_directory: ~/project/
     steps:
       - checkout:
           path: ~/project
       - setup_remote_docker
-      - run:
-          name: Build Docker Image
-          command: docker build -t << parameters.image_name >>:${CIRCLE_SHA1} .
       - gcp-cli/install
       - gcp-cli/initialize
       - run:
-          name: Push to Docker Registry
+          name: Call vertex:edge to build and push Docker image
           command: |
             gcloud auth configure-docker
-            docker push << parameters.image_name >>:${CIRCLE_SHA1}
+            TAG=${CIRCLE_SHA1} python edge.py << parameters.edge_command >>
   cloud-run-deploy:
-    executor: google-cloud
-    working_directory: ~/project/examples/webapp
+    executor: python/default
+    working_directory: ~/project/
     steps:
       - checkout:
           path: ~/project
@@ -90,11 +63,7 @@ jobs:
       - run:
           name: Deploy Cloud Run
           command: |
-            gcloud run deploy fashion-mnist-webapp \
-            --image gcr.io/fuzzylabs/fashion-mnist-webapp \
-            --set-env-vars ENDPOINT_ID=<< pipeline.parameters.endpoint_id >> \
-            --platform managed \
-            --project fuzzylabs --region europe-west4
+            TAG=${CIRCLE_SHA1} python edge.py cloud-run-webapp
 workflows:
   version: 2
   reference-example:
@@ -120,8 +89,7 @@ workflows:
     jobs:
       - build-docker:
           name: webapp-build-docker
-          image_name: gcr.io/fuzzylabs/fashion-mnist-webapp
-          dockerfile_path: examples/webapp
+          edge_command: docker-webapp
           filters:
             branches:
               only:
