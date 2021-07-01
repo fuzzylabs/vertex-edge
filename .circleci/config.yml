@@ -1,0 +1,136 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@1.4.0
+  gcp-cli: circleci/gcp-cli@2.2.0
+
+parameters:
+  gcr_region:
+    type: string
+    default: gcr.io
+
+  gcr_project_id:
+    type: string
+    default: fuzzylabs
+
+  webapp_name:
+    type: string
+    default: fashion-mnist-webapp
+
+  endpoint_id:
+    type: string
+    default: "6923967767733338112"
+
+executors:
+  google-cloud:
+    docker:
+      - image: google/cloud-sdk
+
+commands:
+  dvc_google_auth:
+    description: Configure the DVC to use Google Cloud service account
+    steps:
+      - run: |
+          echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
+          dvc remote modify --local storage credentialpath ${HOME}/gcloud-service-key.json
+
+jobs:
+  run-dvc-pipeline:
+    parameters:
+      pipeline_name:
+        type: string
+    executor: python/default
+    working_directory: ~/project/models/pipelines/<< parameters.pipeline_name >>
+    steps:
+      - checkout:
+          path: ~/project
+      - python/install-packages:
+          pkg-manager: pip
+      - dvc_google_auth
+      - run:
+          name: DVC pipeline run
+          command: |
+            dvc pull
+            GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json IMAGE_TAG=${CIRCLE_SHA1} dvc repro
+      - run:
+          name: Deploy model
+          no_output_timeout: 30m
+          command: |
+            PYTHONPATH=../../../ GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json python3 deploy-vertex.py
+  build-docker:
+    executor: google-cloud
+    parameters:
+      image_name:
+        type: string
+      dockerfile_path:
+        type: string
+    working_directory: ~/project/<< parameters.dockerfile_path >>
+    steps:
+      - checkout:
+          path: ~/project
+      - setup_remote_docker
+      - run:
+          name: Build Docker Image
+          command: docker build -t << parameters.image_name >>:${CIRCLE_SHA1} .
+      - gcp-cli/install
+      - gcp-cli/initialize
+      - run:
+          name: Push to Docker Registry
+          command: |
+            gcloud auth configure-docker
+            docker push << parameters.image_name >>:${CIRCLE_SHA1}
+  cloud-run-deploy:
+    executor: google-cloud
+    working_directory: ~/project/examples/webapp
+    steps:
+      - checkout:
+          path: ~/project
+      - gcp-cli/install
+      - gcp-cli/initialize
+      - run:
+          name: Deploy Cloud Run
+          command: |
+            gcloud run deploy fashion-mnist-webapp \
+            --image gcr.io/fuzzylabs/fashion-mnist-webapp \
+            --set-env-vars ENDPOINT_ID=<< pipeline.parameters.endpoint_id >> \
+            --platform managed \
+            --project fuzzylabs --region europe-west4
+workflows:
+  version: 2
+  reference-example:
+    jobs:
+      - build-docker:
+          name: prediction-server-build-docker
+          image_name: gcr.io/fuzzylabs/fashion-mnist-prediction-server
+          dockerfile_path: examples/reference
+#          filters:
+#            branches:
+#              only:
+#                - master
+      - run-dvc-pipeline:
+          name: reference-example-dvc-pipeline
+          requires:
+            - prediction-server-build-docker
+#          filters:
+#            branches:
+#              only:
+#                - master
+
+  webapp:
+    jobs:
+      - build-docker:
+          name: webapp-build-docker
+          image_name: gcr.io/fuzzylabs/fashion-mnist-webapp
+          dockerfile_path: examples/webapp
+          filters:
+            branches:
+              only:
+                - master
+      - cloud-run-deploy:
+          name: webapp-cloud-run-deploy
+          requires:
+            - webapp-build-docker
+          filters:
+            branches:
+              only:
+                - master
