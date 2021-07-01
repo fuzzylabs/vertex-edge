@@ -1,5 +1,13 @@
+# vertex:edge
 pyserde==0.4.0
 google-cloud-container==2.4.1
 google-cloud-secret-manager==2.5.0
 google_cloud_aiplatform==1.1.1
 dvc[gs]==2.4.3
+sacred==0.8.2
+pymongo==3.11.4
+
+# project
+python-mnist==0.7
+dill==0.3.4
+scikit-learn==0.24.2

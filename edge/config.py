@@ -1,5 +1,8 @@
 from dataclasses import dataclass
+from typing import TypeVar, Type
 from serde import serialize, deserialize
+from serde.yaml import from_yaml, to_yaml
+import os
 
 
 @deserialize
@@ -43,6 +46,9 @@ class WebAppConfig:
     cloud_run_service_name: str
 
 
+T = TypeVar('T', bound='EdgeState')
+
+
 @deserialize
 @serialize
 @dataclass
@@ -52,3 +58,20 @@ class EdgeConfig:
     sacred: SacredConfig
     vertex: VertexConfig
     web_app: WebAppConfig
+
+    def save(self, path: str):
+        with open(path, "w") as f:
+            f.write(to_yaml(self))
+
+    @classmethod
+    def load(cls: Type[T], path: str) -> T:
+        with open(path) as f:
+            yaml_str = "\n".join(f.readlines())
+
+        return from_yaml(EdgeConfig, yaml_str)
+
+    @classmethod
+    def load_default(cls: Type[T]) -> T:
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../edge.yaml")
+        return EdgeConfig.load(config_path)
+

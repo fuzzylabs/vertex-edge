@@ -45,9 +45,9 @@ def dvc_add_remote(path: str):
                 print(f"{path} has already been added")
             else:
                 print(f"modifying existing storage to {path}")
-                subprocess.check_output(f"dvc remote modify storage url {path}", shell=True)
+                subprocess.check_output(f"dvc remote modify storage url {path} && dvc remote default storage", shell=True)
         else:
-            subprocess.check_output(f"dvc remote add storage {path}", shell=True)
+            subprocess.check_output(f"dvc remote add storage {path} && dvc remote default storage", shell=True)
     except subprocess.CalledProcessError as e:
         print(e.output)
         print("Error occurred while adding remote storage to DVC")

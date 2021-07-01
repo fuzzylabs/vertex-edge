@@ -145,6 +145,7 @@ if __name__ == "__main__":
             "config",
             "setup",
             "omniboard",
+            "vertex-endpoint",
         ],
         help=textwrap.dedent('''\
             Command to run
@@ -152,6 +153,7 @@ if __name__ == "__main__":
             setup -- setup the project on Google Cloud, according to the configuration 
                      (and create configuration is does not exist), default.
             omniboard -- get Omniboard URL, if it is deployed
+            vertex-endpoint -- get Vertex AI endpoint
             ''')
     )
     parser.add_argument(
@@ -162,7 +164,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    print(args)
 
     if args.command == "config":
         create_config(args.config)
@@ -178,3 +179,7 @@ if __name__ == "__main__":
         config = load_config(args.config)
         state = EdgeState.load(config)
         print(f"Omniboard: {state.sacred_state.external_omniboard_string}")
+    elif args.command == "vertex-endpoint":
+        config = load_config(args.config)
+        state = EdgeState.load(config)
+        print(f"{state.vertex_endpoint_state.endpoint_resource_name}")

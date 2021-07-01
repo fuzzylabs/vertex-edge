@@ -8,6 +8,7 @@ from google.cloud.container_v1 import Cluster
 from google.api_core.exceptions import NotFound
 from google.cloud import secretmanager_v1
 from edge.state import SacredState
+from sacred.observers import MongoObserver
 
 
 def create_cluster(project_id: str, region: str, cluster_name: str) -> Cluster:
@@ -218,3 +219,15 @@ def get_omniboard(_config: EdgeConfig) -> str:
     )
 
     return f"http://{get_lb_ip('omniboard-lb')}:9000"
+
+
+def get_mongo_observer(config: EdgeConfig) -> MongoObserver:
+    client = secretmanager_v1.SecretManagerServiceClient()
+
+    project_id = config.google_cloud_project.project_id
+    secret_id = config.sacred.mongodb_connection_string_secret
+    secret_name = f"projects/{project_id}/secrets/{secret_id}/versions/latest"
+    response = client.access_secret_version(name=secret_name)
+
+    mongo_connection_string = response.payload.data.decode('UTF-8')
+    return MongoObserver(mongo_connection_string)

@@ -164,6 +164,12 @@ To explicitly run configuration wizard and override the config:
 python edge.py config
 ```
 
+Seed the data
+```
+./seed_data.sh 
+git add data/fashion-mnist/.gitignore data/fashion-mnist/*.dvc
+```
+
 ## Provision the dataset Google Cloud storage
 
 When setting this example up for the first time in your GCP environment, you'll need to initialise the dataset.
