@@ -137,16 +137,12 @@ def build_docker(docker_path, image_name, tag="latest"):
     )
 
 
-def deploy_cloud_run(_config: EdgeConfig, _state: EdgeState, tag: str):
-    subprocess.run(
-        f"gcloud run deploy {_config.web_app.cloud_run_service_name} \
-        --image gcr.io/{_config.google_cloud_project.project_id}/{_config.web_app.webapp_server_image}:{tag} \
-        --set-env-vars ENDPOINT_ID={_state.vertex_endpoint_state.endpoint_resource_name} \
-        --platform managed --allow-unauthenticated \
-        --project {_config.google_cloud_project.project_id} --region {_config.google_cloud_project.region}",
-        shell=True,
-        env=os.environ.copy()
-    )
+def deploy_cloud_run(_config: EdgeConfig, _state: EdgeState, tag: str) -> str:
+    return f"gcloud run deploy {_config.web_app.cloud_run_service_name} \
+            --image gcr.io/{_config.google_cloud_project.project_id}/{_config.web_app.webapp_server_image}:{tag} \
+            --set-env-vars ENDPOINT_ID={_state.vertex_endpoint_state.endpoint_resource_name} \
+            --platform managed --allow-unauthenticated \
+            --project {_config.google_cloud_project.project_id} --region {_config.google_cloud_project.region}"
 
 
 if __name__ == "__main__":
@@ -218,4 +214,4 @@ if __name__ == "__main__":
         tag = os.environ.get("TAG") or "latest"
         config = load_config(args.config)
         state = EdgeState.load(config)
-        deploy_cloud_run(config, state, tag)
+        print(deploy_cloud_run(config, state, tag))
