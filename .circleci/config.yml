@@ -23,6 +23,7 @@ jobs:
       - checkout:
           path: ~/project
       - python/install-packages:
+          pip-dependency-file: ~/project/requirements.txt
           pkg-manager: pip
       - dvc_google_auth
       - run:
