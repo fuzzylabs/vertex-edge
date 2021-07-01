@@ -77,34 +77,34 @@ workflows:
       - build-docker:
           name: prediction-server-build-docker
           edge_command: docker-vertex-prediction
-      #          filters:
-#            branches:
-#              only:
-#                - master
+          filters:
+            branches:
+              only:
+                - master
       - run-dvc-pipeline:
           name: reference-example-dvc-pipeline
           pipeline_name: fashion
           requires:
             - prediction-server-build-docker
-#          filters:
-#            branches:
-#              only:
-#                - master
+          filters:
+            branches:
+              only:
+                - master
 
   webapp:
     jobs:
       - build-docker:
           name: webapp-build-docker
           edge_command: docker-webapp
-          filters:
-            branches:
-              only:
-                - master
+#          filters:
+#            branches:
+#              only:
+#                - master
       - cloud-run-deploy:
           name: webapp-cloud-run-deploy
           requires:
             - webapp-build-docker
-          filters:
-            branches:
-              only:
-                - master
+#          filters:
+#            branches:
+#              only:
+#                - master
