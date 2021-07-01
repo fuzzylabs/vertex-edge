@@ -29,6 +29,7 @@ jobs:
       - run:
           name: DVC pipeline run
           command: |
+            pip install gcsfs==0.6.1 # Quick fix, https://github.com/dask/gcsfs/issues/393
             dvc pull
             GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json IMAGE_TAG=${CIRCLE_SHA1} dvc repro
       - run:
