@@ -69,7 +69,7 @@ jobs:
       - run:
           name: Deploy Cloud Run
           command: |
-            $(TAG=${CIRCLE_SHA1} python edge.py cloud-run-webapp)
+            GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json TAG=${CIRCLE_SHA1} python edge.py cloud-run-webapp
 workflows:
   version: 2
   reference-example:
