@@ -160,6 +160,7 @@ It can:
     * Create Kubernetes cluster and set up Sacred/Omniboard on it for experiment tracking
 * Build and push Docker images for a web app, and for model serving
 * Deploy a web app to Cloud Run
+* Deploy a trained model to Vertex AI
 
 
 ### Setup
@@ -217,7 +218,7 @@ dvc repro models/pipelines/fashion/dvc.yaml
 
 ### Deploy trained model
 ```
-cd models/pipelined/fashion && PYTHONPATH=../../../ python3 deploy-vertex.py
+python edge.py vertex-deploy
 ```
 
 ## Web app locally
