@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import subprocess
 import textwrap
@@ -11,7 +12,7 @@ from edge.endpoint import setup_endpoint
 from edge.storage import setup_storage
 from edge.dvc import setup_dvc
 from serde.yaml import to_yaml, from_yaml
-
+from edge.vertex_deploy import vertex_deploy
 
 def input_with_default(prompt, default):
     got = input(prompt).strip()
@@ -149,6 +150,16 @@ def deploy_cloud_run(_config: EdgeConfig, _state: EdgeState, tag: str):
     )
 
 
+def vertex_deploy_from_state(state: EdgeState):
+    with open("models/fashion/vertex_model.json") as f:
+        model_dict = json.load(f)
+
+    vertex_deploy(
+        state.vertex_endpoint_state.endpoint_resource_name,
+        model_dict["model_name"]
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Edge", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument(
@@ -159,6 +170,7 @@ if __name__ == "__main__":
             "setup",
             "omniboard",
             "vertex-endpoint",
+            "vertex-deploy",
             "docker-webapp",
             "docker-vertex-prediction",
             "cloud-run-webapp"
@@ -170,6 +182,7 @@ if __name__ == "__main__":
                      (and create configuration is does not exist), default.
             omniboard -- get Omniboard URL, if it is deployed
             vertex-endpoint -- get Vertex AI endpoint
+            vertex-deploy -- deploy the trained model to Vertex AI
             docker-webapp -- build Docker container for the web app and push it to Google Container Registry
             docker-vertex-prediction -- build Docker container for the prediction server and push it to Google Container Registry
             cloud-run-webapp -- deploy the webapp to cloud run
@@ -202,6 +215,10 @@ if __name__ == "__main__":
         config = load_config(args.config)
         state = EdgeState.load(config)
         print(f"{state.vertex_endpoint_state.endpoint_resource_name}")
+    elif args.command == "vertex-deploy":
+        config = load_config(args.config)
+        state = EdgeState.load(config)
+        vertex_deploy_from_state(state)
     elif args.command == "docker-vertex-prediction":
         tag = os.environ.get("TAG") or "latest"
         config = load_config(args.config)
@@ -219,3 +236,5 @@ if __name__ == "__main__":
         config = load_config(args.config)
         state = EdgeState.load(config)
         deploy_cloud_run(config, state, tag)
+    else:
+        raise Exception(f"{args.command} command is not supported")

@@ -36,7 +36,7 @@ jobs:
           name: Deploy model
           no_output_timeout: 30m
           command: |
-            PYTHONPATH=../../../ GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json python3 deploy-vertex.py
+            GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json python3 deploy-vertex.py
   build-docker:
     executor: python/default
     parameters:
@@ -77,19 +77,19 @@ workflows:
       - build-docker:
           name: prediction-server-build-docker
           edge_command: docker-vertex-prediction
-          filters:
-            branches:
-              only:
-                - master
+#          filters:
+#            branches:
+#              only:
+#                - master
       - run-dvc-pipeline:
           name: reference-example-dvc-pipeline
           pipeline_name: fashion
           requires:
             - prediction-server-build-docker
-          filters:
-            branches:
-              only:
-                - master
+#          filters:
+#            branches:
+#              only:
+#                - master
 
   webapp:
     jobs:
