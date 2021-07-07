@@ -146,10 +146,6 @@ gcloud auth login
 gcloud auth application-default login
 ```
 
-<!-- TODO: verify this. Application default login too? -->
-
-<!-- unset GOOGLE_APPLICATION_CREDENTIALS -->
-
 ## Edge setup script
 The Vertex:Edge setup script (`edge.py`) is written to simplify setting up a machine learning project
 on Google Cloud Platform from scratch
@@ -232,13 +228,14 @@ python edge.py cloud-run-webapp
 ```
 
 ## CircleCI setup
-TODO
-### Create GCP service account
-Roles:
+### Activate project in CircleCI
+Follow [the instructions](https://circleci.com/docs/2.0/getting-started/?section=getting-started#setting-up-circleci)
+### Add Google Cloud service account 
+Follow [the instructions](https://circleci.com/docs/2.0/google-auth/#creating-and-storing-a-service-account)
+
+Roles that the service account must have:
 * Vertex AI user
 * Service Account User
 * Cloud Run Admin
 * Secret Manager Secret Accessor
 * Storage Admin
-### Activate project in CircleCI
-TODO
