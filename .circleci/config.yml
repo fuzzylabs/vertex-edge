@@ -36,7 +36,7 @@ jobs:
           name: Deploy model
           no_output_timeout: 30m
           command: |
-            GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json python edge.py vertex-deploy
+            cd ../../../ && GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json python edge.py vertex-deploy
   build-docker:
     executor: python/default
     parameters:
