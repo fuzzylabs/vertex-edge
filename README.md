@@ -44,7 +44,7 @@ The data may not be well-understood, and it may be incomplete. It's important to
 
 * It's easier for a team to share data while ensuring that everybody is working with the same version of that data.
 * It allows us to track changes over time.
-* It allows us to link every experiment to a specific data version.
+* It allows us to link every experiment and deployed model to a specific data version.
 
 We use DVC to do data versioning.
 
@@ -68,7 +68,7 @@ Every run of the model pipeline gets logged to a central location. Specifically,
 
 This way, anybody on the team is able to review past experiments and reproduce them consistently.
 
-We use Sacred for experiment tracking.
+We use [Sacred](https://github.com/IDSIA/sacred) with [Omniboard](https://github.com/vivekratnavel/omniboard) for experiment tracking.
 
 ## Adding cloud training infrastructure (Vertex AI)
 
@@ -151,17 +151,22 @@ gcloud auth application-default login
 <!-- unset GOOGLE_APPLICATION_CREDENTIALS -->
 
 ## Edge setup script
+The Vertex:Edge setup script (`edge.py`) is written to simplify setting up a machine learning project
+on Google Cloud Platform from scratch
 
-[comment]: <> (TODO:)
+It can:
+* Run a configuration wizard and save the resulting config for future use (`edge.yaml`)
+* Set up all the necessary resources in GCP, namely
+    * Initialise DVC in the repository (if not initialised)
+    * Enable required Google Cloud APIs
+    * Create a Storage bucket for dataset and model storage
+    * Set up Vertex AI Endpoint for model deployment
+    * Create Kubernetes cluster and set up Sacred/Omniboard on it for experiment tracking
+* Build and push Docker images for a web app, and for model serving
+* Deploy a web app to Cloud Run
 
-[comment]: <> (* What resources it sets up)
 
-[comment]: <> (* CircleCI setup)
-
-[comment]: <> (* DVC seeding)
-
-[comment]: <> (* Running pipelines, deploying model and webapp from local machine)
-
+### Setup
 To setup the project with Google Cloud run:
 ```
 python edge.py setup
@@ -175,88 +180,65 @@ To explicitly run configuration wizard and override the config:
 python edge.py config
 ```
 
-Seed the data
+### Experiment tracker
+To get the URL of the experiment tracker dashboard:
+```
+python edge.py omniboard
+```
+
+
+## Dataset seeding
+When you set up this project with a forked git repo, DVC will not have the dataset in Google Storage.
+To download [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist) dataset and add it to DVC run the following commands:
+
 ```
 ./seed_data.sh 
 git add data/fashion-mnist/.gitignore data/fashion-mnist/*.dvc
 ```
 
-## Provision the dataset Google Cloud storage
 
-When setting this example up for the first time in your GCP environment, you'll need to initialise the dataset.
+[comment]: <> (* CircleCI setup)
 
-<!-- TODO: steps -->
+[comment]: <> (* Running pipelines, deploying model and webapp from local machine)
 
-## Pull the dataset
+## DVC pipelines locally
+
+### Pull the dataset
 
 ```
 dvc pull
 ```
 
-## Train the model locally
-
-First, to get an idea as to what the model training looks like, we can run the training script alone with no bits added.
-
+### Build and push model serving Docker image
 ```
-cd step0
-python train.py
+python edge.py docker-vertex-prediction
 ```
 
-<!-- comment on the model and dataset -->
-
-## Provision the experiment tracker
-
-For experiment tracking, we need an instance of [Sacred](https://github.com/IDSIA/sacred). Sacred works in conjunction with MongoDB, which is used to store the experiments themselves, and [Omniboard](https://vivekratnavel.github.io/omniboard/#/README), which provides the user interface for Sacred.
-
-<!-- TODO: we should encourage people to run this in GCP. Perhaps remove the local instructions -->
-Typically you'll want to provision Sacred in GCP, so that you have centralised experiment tracking. You can also run it locally for testing purposes.
-
-### Running experiment tracking in GCP
-
-<!-- TODO -->
-
-### Running experiment tracking locally
-
-We'll use Docker to run Sacred locally. First, start MongoDB:
-
+### Run training pipeline
 ```
-docker run --name mongo -p 27017:27017 -d mongo:latest
+dvc repro models/pipelines/fashion/dvc.yaml
 ```
 
-Next, launch Omniboard, which will provide us with a user interface with which to view experiments:
-
+### Deploy trained model
 ```
-docker run -it --rm -p 9000:9000 --network host --name omniboard vivekratnavel/omniboard -m localhost:27017:sacred
-```
-
-You can now open the dashboard in your browser [http://localhost:9000](http://localhost:9000).
-
-## Train the model locally with DVC pipeline
-
-This time, we train the model through a model training pipeline, which uses DVC. We also log the training to our experiment tracker.
-
-```
-cp dvc-step1.yaml dvc.yaml
-dvc repro
+cd models/pipelined/fashion && PYTHONPATH=../../../ python3 deploy-vertex.py
 ```
 
-This step uses [Sacred](https://github.com/IDSIA/sacred) for experiment tracking. The results are saved to MongoDB.
-
-## Train the model on Vertex AI
-
-This step is the same as before, except that this time we will run the training step on Vertex. The pipeline still executes locally, but the training step will invoke the Vertex API in order to run the training step there.
-
+## Web app locally
+### Deploy to Cloud Run
 ```
-cp dvc-step2.yaml dvc.yaml
-dvc repro
+python edge.py docker-webapp
+python edge.py cloud-run-webapp
 ```
 
-## Train and deploy on Vertex AI
-
-<!-- TODO -->
-
-```
-cp dvc-step2.yaml dvc.yaml
-dvc repro
-python deploy-vertex.py
-```
+## CircleCI setup
+TODO
+### Create GCP service account
+Roles:
+* Vertex AI user
+* Service Account User
+* Cloud Run Admin
+* Secret Manager Secret Accessor
+* Storage Admin
+### Activate project in CircleCI
+TODO
