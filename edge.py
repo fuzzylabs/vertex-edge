@@ -14,6 +14,7 @@ from edge.dvc import setup_dvc
 from serde.yaml import to_yaml, from_yaml
 from edge.vertex_deploy import vertex_deploy
 
+
 def input_with_default(prompt, default):
     got = input(prompt).strip()
     if got == "":
@@ -133,7 +134,12 @@ def setup_edge(_config: EdgeConfig):
 
 def build_docker(docker_path, image_name, tag="latest"):
     os.system(
-        f"docker build -t {image_name}:{tag} {docker_path} &&"
+        f"docker build -t {image_name}:{tag} {docker_path}"
+    )
+
+
+def push_docker(docker_path, image_name, tag="latest"):
+    os.system(
         f"docker push {image_name}:{tag}"
     )
 
@@ -160,6 +166,29 @@ def vertex_deploy_from_state(state: EdgeState):
     )
 
 
+def get_google_application_credentials():
+    credentials_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if credentials_path is None:
+        credentials_path = "~/.config/gcloud/application_default_credentials.json"
+        print(
+            f"WARNING: assuming Google Application Credentials at {credentials_path}, "
+            f"set GOOGLE_APPLICATION_CREDENTIALS to override"
+        )
+    return credentials_path
+
+
+def run_docker_service(endpoint_id: str, image_name: str, tag: str = "latest"):
+    credentials_path = get_google_application_credentials()
+    os.system(
+        "docker run "
+        f"-v {credentials_path}:/key.json "
+        "-e GOOGLE_APPLICATION_CREDENTIALS='/key.json' "
+        f"-e ENDPOINT_ID='{endpoint_id}' "
+        "-it -p 8080:8080 "
+        "gcr.io/$PROJECT_ID/fashion-mnist-webapp"
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Edge", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument(
@@ -171,6 +200,7 @@ if __name__ == "__main__":
             "omniboard",
             "vertex-endpoint",
             "vertex-deploy",
+            "run-webapp",
             "docker-webapp",
             "docker-vertex-prediction",
             "cloud-run-webapp"
@@ -183,6 +213,7 @@ if __name__ == "__main__":
             omniboard -- get Omniboard URL, if it is deployed
             vertex-endpoint -- get Vertex AI endpoint
             vertex-deploy -- deploy the trained model to Vertex AI
+            run-webapp -- run the web app locally in Docker
             docker-webapp -- build Docker container for the web app and push it to Google Container Registry
             docker-vertex-prediction -- build Docker container for the prediction server and push it to Google Container Registry
             cloud-run-webapp -- deploy the webapp to cloud run
@@ -225,16 +256,26 @@ if __name__ == "__main__":
         path = "models/pipelines/fashion"
         image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.vertex.prediction_server_image}"
         build_docker(path, image_name, tag)
+        push_docker(path, image_name, tag)
     elif args.command == "docker-webapp":
         tag = os.environ.get("TAG") or "latest"
         config = load_config(args.config)
         path = "services/fashion-web"
         image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
         build_docker(path, image_name, tag)
+        push_docker(path, image_name, tag)
     elif args.command == "cloud-run-webapp":
         tag = os.environ.get("TAG") or "latest"
         config = load_config(args.config)
         state = EdgeState.load(config)
         deploy_cloud_run(config, state, tag)
+    elif args.command == "run-webapp":
+        tag = os.environ.get("TAG") or "latest"
+        config = load_config(args.config)
+        state = EdgeState.load(config)
+        path = "services/fashion-web"
+        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
+        build_docker(path, image_name, tag)
+        run_docker_service(state.vertex_endpoint_state.endpoint_resource_name, image_name, tag)
     else:
         raise Exception(f"{args.command} command is not supported")

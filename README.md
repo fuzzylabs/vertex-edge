@@ -222,6 +222,11 @@ python edge.py vertex-deploy
 ```
 
 ## Web app locally
+### Run locally in docker
+```
+python edge.py run-webapp
+```
+
 ### Deploy to Cloud Run
 ```
 python edge.py docker-webapp
