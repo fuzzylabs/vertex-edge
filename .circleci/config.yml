@@ -109,7 +109,7 @@ workflows:
   reference-example:
     jobs:
       - python-test:
-          name: webapp-python-tests
+          name: model-pipeline-python-tests
           path: models/pipelines/fashion
       - build-docker:
           name: prediction-server-build-docker
