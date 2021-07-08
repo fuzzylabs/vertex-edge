@@ -23,7 +23,9 @@ jobs:
     parameters:
       path:
         type: string
-    executor: python/default
+    executor:
+      name: python/default
+      tag: 3.8.0
     working_directory: ~/project/<< parameters.path >>
     steps:
       - checkout:
@@ -38,7 +40,9 @@ jobs:
     parameters:
       pipeline_name:
         type: string
-    executor: python/default
+    executor:
+      name: python/default
+      tag: 3.8.0
     working_directory: ~/project/models/pipelines/<< parameters.pipeline_name >>
     steps:
       - checkout:
@@ -60,7 +64,9 @@ jobs:
             export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
             cd ../../../ && python edge.py vertex-deploy
   build-docker:
-    executor: python/default
+    executor:
+      name: python/default
+      tag: 3.8.0
     parameters:
       edge_command:
         type: string
@@ -81,7 +87,9 @@ jobs:
             export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
             TAG=${CIRCLE_SHA1} python edge.py << parameters.edge_command >>
   cloud-run-deploy:
-    executor: python/default
+    executor:
+      name: python/default
+      tag: 3.8.0
     working_directory: ~/project/
     steps:
       - checkout:
