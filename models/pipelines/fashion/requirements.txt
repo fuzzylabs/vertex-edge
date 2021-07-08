@@ -3,3 +3,4 @@ google-cloud-storage
 dill==0.3.4
 scikit-learn==0.24.2
 uvicorn
+pytest

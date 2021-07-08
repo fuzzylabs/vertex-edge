@@ -108,6 +108,9 @@ workflows:
   version: 2
   reference-example:
     jobs:
+      - python-test:
+          name: webapp-python-tests
+          path: models/pipelines/fashion
       - build-docker:
           name: prediction-server-build-docker
           edge_command: docker-vertex-prediction
