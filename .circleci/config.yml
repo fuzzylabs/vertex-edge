@@ -16,7 +16,6 @@ commands:
     steps:
       - run: |
           echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
-          export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
           gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
 
 jobs:
@@ -44,6 +43,7 @@ jobs:
           name: Deploy model
           no_output_timeout: 30m
           command: |
+            export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
             cd ../../../ && python edge.py vertex-deploy
   build-docker:
     executor: python/default
@@ -64,6 +64,7 @@ jobs:
           name: Call vertex:edge to build and push Docker image
           command: |
             gcloud auth configure-docker
+            export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
             TAG=${CIRCLE_SHA1} python edge.py << parameters.edge_command >>
   cloud-run-deploy:
     executor: python/default
@@ -79,6 +80,7 @@ jobs:
       - run:
           name: Deploy Cloud Run
           command: |
+            export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
             TAG=${CIRCLE_SHA1} python edge.py cloud-run-webapp
 workflows:
   version: 2
