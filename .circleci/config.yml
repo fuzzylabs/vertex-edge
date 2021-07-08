@@ -31,7 +31,6 @@ jobs:
       - python/install-packages:
           pip-dependency-file: ~/project/requirements.txt
           pkg-manager: pip
-      - google_auth
       - dvc_google_auth
       - run:
           name: DVC pipeline run
