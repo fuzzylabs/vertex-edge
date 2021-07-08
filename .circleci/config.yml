@@ -12,6 +12,12 @@ commands:
           echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
           dvc remote modify --local storage credentialpath ${HOME}/gcloud-service-key.json
 
+  google_auth:
+    steps:
+      - run: |
+          echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
+
 jobs:
   run-dvc-pipeline:
     parameters:
@@ -25,18 +31,19 @@ jobs:
       - python/install-packages:
           pip-dependency-file: ~/project/requirements.txt
           pkg-manager: pip
+      - google_auth
       - dvc_google_auth
       - run:
           name: DVC pipeline run
           command: |
             pip install gcsfs==0.6.1 # Quick fix, https://github.com/dask/gcsfs/issues/393
             dvc pull
-            GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json IMAGE_TAG=${CIRCLE_SHA1} dvc repro
+            IMAGE_TAG=${CIRCLE_SHA1} dvc repro
       - run:
           name: Deploy model
           no_output_timeout: 30m
           command: |
-            cd ../../../ && GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json python edge.py vertex-deploy
+            cd ../../../ && python edge.py vertex-deploy
   build-docker:
     executor: python/default
     parameters:
@@ -51,6 +58,7 @@ jobs:
       - setup_remote_docker
       - gcp-cli/install
       - gcp-cli/initialize
+      - google_auth
       - run:
           name: Call vertex:edge to build and push Docker image
           command: |
@@ -66,10 +74,11 @@ jobs:
           pkg-manager: pip
       - gcp-cli/install
       - gcp-cli/initialize
+      - google_auth
       - run:
           name: Deploy Cloud Run
           command: |
-            GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json TAG=${CIRCLE_SHA1} python edge.py cloud-run-webapp
+            TAG=${CIRCLE_SHA1} python edge.py cloud-run-webapp
 workflows:
   version: 2
   reference-example:
