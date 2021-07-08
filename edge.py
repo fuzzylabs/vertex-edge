@@ -206,6 +206,7 @@ if __name__ == "__main__":
         choices=[
             "config",
             "setup",
+            "force-unlock",
             "omniboard",
             "vertex-endpoint",
             "vertex-deploy",
@@ -219,6 +220,7 @@ if __name__ == "__main__":
             config -- create a vertex:edge configuration.
             setup -- setup the project on Google Cloud, according to the configuration 
                      (and create configuration is does not exist), default.
+            force-unlock -- unlock state file explicitly
             omniboard -- get Omniboard URL, if it is deployed
             vertex-endpoint -- get Vertex AI endpoint
             vertex-deploy -- deploy the trained model to Vertex AI
@@ -245,6 +247,12 @@ if __name__ == "__main__":
         config = create_config(args.config)
     else:
         print("Configuration is found")
+
+    if args.command == "force-unlock":
+        EdgeState.unlock(
+            config.storage_bucket.bucket_name
+        )
+        exit(0)
 
     state_locked, lock_later = EdgeState.lock(
         config.storage_bucket.bucket_name

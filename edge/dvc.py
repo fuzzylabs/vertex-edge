@@ -9,14 +9,33 @@ def dvc_init():
     print("## Initialising DVC")
     if os.path.exists(".dvc") and os.path.isdir(".dvc"):
         print("DVC is already initialised")
-    else:
-        try:
-            subprocess.check_output("dvc init", shell=True)
-        except subprocess.CalledProcessError as e:
-            print(e.output)
-            print("Error occurred while initialising DVC")
-            exit(1)
-        print("DVC is initialised")
+        choice = None
+        while choice not in ["y", "n"]:
+            choice = input("Do you want to destroy DVC and initialise it from scratch (y/n)? [n]: ").strip().lower()
+            if choice == "":
+                choice = "n"
+
+        if choice == "n":
+            return
+        elif choice == "y":
+            dvc_destroy()
+    try:
+        subprocess.check_output("dvc init", shell=True)
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print("Error occurred while initialising DVC")
+        exit(1)
+    print("DVC is initialised")
+
+
+def dvc_destroy():
+    try:
+        subprocess.check_output("echo y | dvc destroy", shell=True)
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        print("Error occurred while destroying DVC")
+        exit(1)
+    print("DVC is destroyed")
 
 
 def dvc_remote_exists(path: str) -> (bool, bool):
