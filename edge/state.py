@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from google.cloud import storage
 
 from edge.config import EdgeConfig
-from typing import Type, TypeVar
+from typing import Type, TypeVar, Optional
 
 
 @deserialize
@@ -47,8 +47,43 @@ class EdgeState:
         blob.upload_from_string(to_yaml(self))
 
     @classmethod
-    def load(cls: Type[T], _config: EdgeConfig) -> T:
+    def load(cls: Type[T], _config: EdgeConfig) -> Optional[T]:
         client = storage.Client()
         bucket = client.bucket(_config.storage_bucket.bucket_name)
         blob = storage.Blob(".edge_state/edge_state.yaml", bucket)
-        return from_yaml(EdgeState, blob.download_as_bytes(client).decode("utf-8"))
+        if blob.exists():
+            return from_yaml(EdgeState, blob.download_as_bytes(client).decode("utf-8"))
+        else:
+            return None
+
+    @classmethod
+    def lock(cls, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml") -> (bool, bool):
+        """
+        Lock the state file in Google Storage Bucket
+
+        :param bucket_name:
+        :param blob_name:
+        :return: (bool, bool) -- is lock successful, is state to be locked later
+        """
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+        if not bucket.exists():
+            print("Google Storage Bucket does not exist, lock later...")
+            return False, True
+        blob = storage.Blob(f"{blob_name}.lock", bucket)
+        if blob.exists():
+            print("State file is already locked")
+            return False, False
+
+        blob.upload_from_string("locked")
+        print("State file locked")
+        return True, False
+
+    @classmethod
+    def unlock(cls, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml"):
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+        blob = storage.Blob(f"{blob_name}.lock", bucket)
+        if blob.exists():
+            blob.delete()
+        print("State file unlocked")

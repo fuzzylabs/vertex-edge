@@ -14,6 +14,11 @@ from edge.dvc import setup_dvc
 from serde.yaml import to_yaml, from_yaml
 from edge.vertex_deploy import vertex_deploy
 
+config = None
+state = None
+state_locked = False
+lock_later = False
+
 
 def input_with_default(prompt, default):
     got = input(prompt).strip()
@@ -104,7 +109,7 @@ def load_config(path: str) -> Optional[EdgeConfig]:
     return _config
 
 
-def setup_edge(_config: EdgeConfig):
+def setup_edge(_config: EdgeConfig, lock_later: bool):
     print("Using configuration")
     print(to_yaml(_config))
     print()
@@ -112,6 +117,10 @@ def setup_edge(_config: EdgeConfig):
     enable_api(_config)
 
     storage_bucket_output = setup_storage(_config)
+    if lock_later:
+        EdgeState.lock(
+            config.storage_bucket.bucket_name
+        )
 
     setup_dvc(_config, storage_bucket_output)
 
@@ -138,7 +147,7 @@ def build_docker(docker_path, image_name, tag="latest"):
     )
 
 
-def push_docker(docker_path, image_name, tag="latest"):
+def push_docker(image_name, tag="latest"):
     os.system(
         f"docker push {image_name}:{tag}"
     )
@@ -228,50 +237,54 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # Load configuration, and state (if exist) and lock state
+    print("Loading configuration...")
+    config = load_config(args.config)
+    if config is None:
+        print("Configuration, does not exist creating...")
+        config = create_config(args.config)
+    else:
+        print("Configuration is found")
+
+    state_locked, lock_later = EdgeState.lock(
+        config.storage_bucket.bucket_name
+    )
+    if not state_locked and not lock_later:
+        print("Cannot lock state, exiting...")
+        exit(1)
+    state = EdgeState.load(config)
+
     if args.command == "config":
         create_config(args.config)
     elif args.command == "setup":
-        config = load_config(args.config)
-        if config is None:
-            print("Configuration, does not exist creating...")
-            config = create_config(args.config)
-        else:
-            print("Configuration is found")
-        setup_edge(config)
+        setup_edge(config, lock_later)
     elif args.command == "omniboard":
-        config = load_config(args.config)
         state = EdgeState.load(config)
         print(f"Omniboard: {state.sacred_state.external_omniboard_string}")
     elif args.command == "vertex-endpoint":
-        config = load_config(args.config)
         state = EdgeState.load(config)
         print(f"{state.vertex_endpoint_state.endpoint_resource_name}")
     elif args.command == "vertex-deploy":
-        config = load_config(args.config)
         state = EdgeState.load(config)
         vertex_deploy_from_state(state)
     elif args.command == "docker-vertex-prediction":
         tag = os.environ.get("TAG") or "latest"
-        config = load_config(args.config)
         path = "models/pipelines/fashion"
         image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.vertex.prediction_server_image}"
         build_docker(path, image_name, tag)
-        push_docker(path, image_name, tag)
+        push_docker(image_name, tag)
     elif args.command == "docker-webapp":
         tag = os.environ.get("TAG") or "latest"
-        config = load_config(args.config)
         path = "services/fashion-web"
         image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
         build_docker(path, image_name, tag)
-        push_docker(path, image_name, tag)
+        push_docker(image_name, tag)
     elif args.command == "cloud-run-webapp":
         tag = os.environ.get("TAG") or "latest"
-        config = load_config(args.config)
         state = EdgeState.load(config)
         deploy_cloud_run(config, state, tag)
     elif args.command == "run-webapp":
         tag = os.environ.get("TAG") or "latest"
-        config = load_config(args.config)
         state = EdgeState.load(config)
         path = "services/fashion-web"
         image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
@@ -279,3 +292,7 @@ if __name__ == "__main__":
         run_docker_service(state.vertex_endpoint_state.endpoint_resource_name, image_name, tag)
     else:
         raise Exception(f"{args.command} command is not supported")
+
+    EdgeState.unlock(
+        config.storage_bucket.bucket_name
+    )
