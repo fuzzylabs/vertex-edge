@@ -1,11 +1,9 @@
 import io
-import numpy as np
 from starlette.applications import Starlette
 from starlette.routing import Route
 from starlette.responses import JSONResponse
 from starlette.templating import Jinja2Templates
 from google.cloud.aiplatform import Endpoint
-from PIL import Image
 import os
 
 endpoint_id = os.environ.get("ENDPOINT_ID")
@@ -32,11 +30,13 @@ async def homepage(request):
     return templates.TemplateResponse('index.html', {'request': request})
 
 
+
+
+
 async def infer(request):
     form = await request.form()
     contents = await form["img"].read()
-    with Image.open(io.BytesIO(contents)) as im:
-        img = np.array(im.resize((28, 28)).convert("L")).reshape((-1,)).astype(int).tolist()
+    img = prepare(io.BytesIO(contents))
 
     print(type(img))
     prediction = endpoint.predict(instances=[img])

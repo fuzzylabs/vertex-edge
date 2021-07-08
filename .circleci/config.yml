@@ -19,6 +19,21 @@ commands:
           gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
 
 jobs:
+  python-test:
+    parameters:
+      path:
+        type: string
+    executor: python/default
+    working_directory: ~/project/<< parameters.path >>
+    steps:
+      - checkout:
+          path: ~/project
+      - python/install-packages:
+          pkg-manager: pip
+      - run:
+          name: Run tests
+          command: |
+            PYTHONPATH=. py.test
   run-dvc-pipeline:
     parameters:
       pipeline_name:
@@ -88,25 +103,30 @@ workflows:
       - build-docker:
           name: prediction-server-build-docker
           edge_command: docker-vertex-prediction
-#          filters:
-#            branches:
-#              only:
-#                - master
+          filters:
+            branches:
+              only:
+                - master
       - run-dvc-pipeline:
           name: reference-example-dvc-pipeline
           pipeline_name: fashion
           requires:
             - prediction-server-build-docker
-#          filters:
-#            branches:
-#              only:
-#                - master
+          filters:
+            branches:
+              only:
+                - master
 
   webapp:
     jobs:
+      - python-test:
+          name: webapp-python-tests
+          path: services/fashion-web/
       - build-docker:
           name: webapp-build-docker
           edge_command: docker-webapp
+          requires:
+            - webapp-python-tests
           filters:
             branches:
               only:
