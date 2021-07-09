@@ -250,11 +250,13 @@ if __name__ == "__main__":
 
     if args.command == "force-unlock":
         EdgeState.unlock(
+            config.google_cloud_project.project_id,
             config.storage_bucket.bucket_name
         )
         exit(0)
 
     state_locked, lock_later = EdgeState.lock(
+        config.google_cloud_project.project_id,
         config.storage_bucket.bucket_name
     )
     if not state_locked and not lock_later:
@@ -302,5 +304,6 @@ if __name__ == "__main__":
         raise Exception(f"{args.command} command is not supported")
 
     EdgeState.unlock(
+        config.google_cloud_project.project_id,
         config.storage_bucket.bucket_name
     )

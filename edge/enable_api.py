@@ -4,18 +4,19 @@ from .config import EdgeConfig
 
 def enable_api(_config: EdgeConfig):
     print("# Enabling necessary Google Cloud APIs")
+    project_id = _config.google_cloud_project.project_id
 
     print("## Kubernetes Engine")
-    os.system("gcloud services enable container.googleapis.com")
+    os.system(f"gcloud services enable container.googleapis.com --project {project_id}")
 
     print("## Storage")
-    os.system("gcloud services enable storage-component.googleapis.com")
+    os.system(f"gcloud services enable storage-component.googleapis.com --project {project_id}")
 
     print("## Container Registry")
-    os.system("gcloud services enable containerregistry.googleapis.com")
+    os.system(f"gcloud services enable containerregistry.googleapis.com --project {project_id}")
 
     print("## Vertex AI")
-    os.system("gcloud services enable aiplatform.googleapis.com")
+    os.system(f"gcloud services enable aiplatform.googleapis.com --project {project_id}")
 
     print("## Secret Manager")
-    os.system("gcloud services enable secretmanager.googleapis.com")
+    os.system(f"gcloud services enable secretmanager.googleapis.com --project {project_id}")

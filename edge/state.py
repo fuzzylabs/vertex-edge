@@ -41,14 +41,14 @@ class EdgeState:
     storage_bucket_state: StorageBucketState
 
     def save(self, _config: EdgeConfig):
-        client = storage.Client()
+        client = storage.Client(project=_config.google_cloud_project.project_id)
         bucket = client.bucket(_config.storage_bucket.bucket_name)
         blob = storage.Blob(".edge_state/edge_state.yaml", bucket)
         blob.upload_from_string(to_yaml(self))
 
     @classmethod
     def load(cls: Type[T], _config: EdgeConfig) -> Optional[T]:
-        client = storage.Client()
+        client = storage.Client(project=_config.google_cloud_project.project_id)
         bucket = client.bucket(_config.storage_bucket.bucket_name)
         blob = storage.Blob(".edge_state/edge_state.yaml", bucket)
         if blob.exists():
@@ -57,7 +57,7 @@ class EdgeState:
             return None
 
     @classmethod
-    def lock(cls, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml") -> (bool, bool):
+    def lock(cls, project: str, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml") -> (bool, bool):
         """
         Lock the state file in Google Storage Bucket
 
@@ -65,7 +65,7 @@ class EdgeState:
         :param blob_name:
         :return: (bool, bool) -- is lock successful, is state to be locked later
         """
-        client = storage.Client()
+        client = storage.Client(project=project)
         bucket = client.bucket(bucket_name)
         if not bucket.exists():
             print("Google Storage Bucket does not exist, lock later...")
@@ -80,8 +80,8 @@ class EdgeState:
         return True, False
 
     @classmethod
-    def unlock(cls, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml"):
-        client = storage.Client()
+    def unlock(cls, project: str, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml"):
+        client = storage.Client(project=project)
         bucket = client.bucket(bucket_name)
         blob = storage.Blob(f"{blob_name}.lock", bucket)
         if blob.exists():
