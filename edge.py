@@ -13,6 +13,7 @@ from edge.storage import setup_storage, tear_down_storage
 from edge.dvc import setup_dvc
 from serde.yaml import to_yaml, from_yaml
 from edge.vertex_deploy import vertex_deploy
+import atexit
 
 config = None
 state = None
@@ -269,6 +270,13 @@ def run_docker_service(endpoint_id: str, image_name: str, tag: str = "latest"):
     )
 
 
+def safe_exit(_config: EdgeConfig, _state: Optional[EdgeState]):
+    EdgeState.unlock(
+        config.google_cloud_project.project_id,
+        config.storage_bucket.bucket_name
+    )
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Edge", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument(
@@ -320,6 +328,7 @@ if __name__ == "__main__":
         config = create_config(args.config)
     else:
         print("Configuration is found")
+    atexit.register(safe_exit, config, state)
 
     if args.command == "force-unlock":
         EdgeState.unlock(
@@ -336,7 +345,6 @@ if __name__ == "__main__":
         print("Cannot lock state, exiting...")
         exit(1)
     state = EdgeState.load(config)
-
     if args.command == "config":
         create_config(args.config)
     elif args.command == "setup":
@@ -378,8 +386,3 @@ if __name__ == "__main__":
         tear_down_edge(config, state)
     else:
         raise Exception(f"{args.command} command is not supported")
-
-    EdgeState.unlock(
-        config.google_cloud_project.project_id,
-        config.storage_bucket.bucket_name
-    )
