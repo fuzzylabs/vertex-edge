@@ -1,7 +1,7 @@
 from typing import Optional
 from google.cloud import aiplatform
 from .config import EdgeConfig
-from .state import VertexEndpointState
+from .state import VertexEndpointState, EdgeState
 
 
 def get_endpoint(project_id: str, region: str, endpoint_name: str) -> Optional[str]:
@@ -48,3 +48,11 @@ def setup_endpoint(_config: EdgeConfig) -> VertexEndpointState:
     else:
         print(f"{endpoint_name} endpoint exists: {endpoint_resource_name}")
     return VertexEndpointState(endpoint_resource_name)
+
+
+def tear_down_endpoint(_config: EdgeConfig, _state: EdgeState):
+    print(f"# Tearing down Vertex AI endpoint: {_state.vertex_endpoint_state.endpoint_resource_name}")
+
+    endpoint = aiplatform.Endpoint(_state.vertex_endpoint_state.endpoint_resource_name)
+    endpoint.undeploy_all()
+    endpoint.delete()

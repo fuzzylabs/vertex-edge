@@ -36,9 +36,9 @@ T = TypeVar('T', bound='EdgeState')
 @serialize
 @dataclass
 class EdgeState:
-    vertex_endpoint_state: VertexEndpointState
-    sacred_state: SacredState
-    storage_bucket_state: StorageBucketState
+    vertex_endpoint_state: Optional[VertexEndpointState]
+    sacred_state: Optional[SacredState]
+    storage_bucket_state: Optional[StorageBucketState]
 
     def save(self, _config: EdgeConfig):
         client = storage.Client(project=_config.google_cloud_project.project_id)

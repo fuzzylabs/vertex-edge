@@ -7,7 +7,7 @@ from google.cloud import container_v1
 from google.cloud.container_v1 import Cluster
 from google.api_core.exceptions import NotFound
 from google.cloud import secretmanager_v1
-from edge.state import SacredState
+from edge.state import SacredState, EdgeState
 from sacred.observers import MongoObserver
 
 
@@ -185,6 +185,40 @@ def save_mongo_to_secretmanager(_config: EdgeConfig, connection_string: str):
     )
 
 
+def delete_mongo_to_secretmanager(_config: EdgeConfig):
+    project_id = _config.google_cloud_project.project_id
+    secret_id = _config.sacred.mongodb_connection_string_secret
+    print("## Removing MongoDB connection string from Google Cloud Secret Manager")
+    client = secretmanager_v1.SecretManagerServiceClient()
+
+    try:
+        client.access_secret_version(
+            name=f"projects/{project_id}/secrets/{secret_id}/versions/latest"
+        )
+        client.delete_secret(name=f"projects/{project_id}/secrets/{secret_id}")
+    except NotFound:
+        print("Secret does not exist")
+        return
+
+
+def delete_cluster(_config: EdgeConfig):
+    project_id = _config.google_cloud_project.project_id
+    region = _config.google_cloud_project.region
+    cluster_name = _config.sacred.gke_cluster_name
+    print(f"## Deleting cluster '{cluster_name}'")
+    client = container_v1.ClusterManagerClient()
+    try:
+        client.get_cluster(
+            project_id=project_id,
+            name=f"projects/{project_id}/locations/{region}/clusters/{cluster_name}"
+        )
+        os.system(
+            f"gcloud container clusters delete {cluster_name} --project {project_id} --region {region}"
+        )
+    except NotFound:
+        print("Cluster does not exist")
+
+
 def setup_sacred(_config: EdgeConfig):
     print("# Setting up Sacred+Omniboard")
 
@@ -209,6 +243,13 @@ def setup_sacred(_config: EdgeConfig):
     return SacredState(
         external_omniboard_string=external_omniboard_string
     )
+
+
+def tear_down_sacred(_config: EdgeConfig, _state: EdgeState):
+    print("# Tearing down Sacred+Omniboard")
+
+    delete_mongo_to_secretmanager(_config)
+    delete_cluster(_config)
 
 
 def get_omniboard(_config: EdgeConfig) -> str:

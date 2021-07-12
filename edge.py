@@ -6,10 +6,10 @@ import textwrap
 from typing import Optional
 from edge.config import *
 from edge.state import EdgeState
-from edge.sacred import setup_sacred, get_omniboard
+from edge.sacred import setup_sacred, get_omniboard, tear_down_sacred
 from edge.enable_api import enable_api
-from edge.endpoint import setup_endpoint
-from edge.storage import setup_storage
+from edge.endpoint import setup_endpoint, tear_down_endpoint
+from edge.storage import setup_storage, tear_down_storage
 from edge.dvc import setup_dvc
 from serde.yaml import to_yaml, from_yaml
 from edge.vertex_deploy import vertex_deploy
@@ -25,6 +25,19 @@ def input_with_default(prompt, default):
     if got == "":
         got = default
     return got
+
+
+def input_yn(promt, default) -> bool:
+    choice = None
+    while choice not in ["y", "n"]:
+        choice = input(f"{promt} (y/n)? [{default}]: ").strip().lower()
+        if choice == "":
+            choice = default
+
+    if choice == "n":
+        return False
+    else:
+        return True
 
 
 def create_config(path: str) -> EdgeConfig:
@@ -119,6 +132,7 @@ def setup_edge(_config: EdgeConfig, lock_later: bool):
     storage_bucket_output = setup_storage(_config)
     if lock_later:
         EdgeState.lock(
+            config.google_cloud_project.project_id,
             config.storage_bucket.bucket_name
         )
 
@@ -141,6 +155,53 @@ def setup_edge(_config: EdgeConfig, lock_later: bool):
     print(to_yaml(state))
 
 
+def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
+    print("WARNING: The following operations are destructive")
+
+    keep_state = False
+
+    if _state.vertex_endpoint_state is not None:
+        if input_yn(
+                f"Do you want to destroy Vertex AI endpoint: {_state.vertex_endpoint_state.endpoint_resource_name}",
+                "n"
+        ):
+            tear_down_endpoint(_config, _state)
+            _state.vertex_endpoint_state = None
+        else:
+            print("Vertex AI endpoint is kept")
+
+    if _state.sacred_state is not None:
+        if input_yn(f"Do you want to destroy Sacred GKE cluster: {_config.sacred.gke_cluster_name}", "n"):
+            tear_down_sacred(_config, _state)
+            _state.sacred_state = None
+        else:
+            print("Sacred cluster is kept")
+
+    if _state.storage_bucket_state is not None:
+        if input_yn(f"Do you want to destroy Google Storage bucket: {_config.storage_bucket.bucket_name}", "n"):
+            tear_down_storage(_config, _state)
+            _state.storage_bucket_state = None
+        else:
+            keep_state = True
+            print("Storage bucket is kept")
+
+    if input_yn(f"Do you want to stop Cloud Run service: {_config.web_app.cloud_run_service_name}", "n"):
+        print("# Cloud Run service is stopping...")
+        remove_cloud_run(_config)
+    else:
+        print("Cloud Run service is kept")
+
+    if keep_state:
+        print("Google Storage bucket is still present, so the state is kept")
+        _state.save(_config)
+        print(to_yaml(state))
+        EdgeState.unlock(
+            _config.google_cloud_project.project_id,
+            _config.storage_bucket.bucket_name
+        )
+    exit(0)
+
+
 def build_docker(docker_path, image_name, tag="latest"):
     os.system(
         f"docker build -t {image_name}:{tag} {docker_path}"
@@ -159,6 +220,16 @@ def deploy_cloud_run(_config: EdgeConfig, _state: EdgeState, tag: str):
         --image gcr.io/{_config.google_cloud_project.project_id}/{_config.web_app.webapp_server_image}:{tag} \
         --set-env-vars ENDPOINT_ID={_state.vertex_endpoint_state.endpoint_resource_name} \
         --platform managed --allow-unauthenticated \
+        --project {_config.google_cloud_project.project_id} --region {_config.google_cloud_project.region}",
+        shell=True,
+        env=os.environ.copy()
+    )
+
+
+def remove_cloud_run(_config: EdgeConfig):
+    subprocess.run(
+        f"gcloud run services delete {_config.web_app.cloud_run_service_name} \
+        --platform managed \
         --project {_config.google_cloud_project.project_id} --region {_config.google_cloud_project.region}",
         shell=True,
         env=os.environ.copy()
@@ -213,7 +284,8 @@ if __name__ == "__main__":
             "run-webapp",
             "docker-webapp",
             "docker-vertex-prediction",
-            "cloud-run-webapp"
+            "cloud-run-webapp",
+            "tear-down"
         ],
         help=textwrap.dedent('''\
             Command to run:
@@ -228,6 +300,7 @@ if __name__ == "__main__":
             docker-webapp -- build Docker container for the web app and push it to Google Container Registry
             docker-vertex-prediction -- build Docker container for the prediction server and push it to Google Container Registry
             cloud-run-webapp -- deploy the webapp to cloud run
+            tear-down -- tear down Google Cloud infrastructure associated with this project (WARNING DESTRUCTIVE)
             ''')
     )
     parser.add_argument(
@@ -300,6 +373,9 @@ if __name__ == "__main__":
         image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
         build_docker(path, image_name, tag)
         run_docker_service(state.vertex_endpoint_state.endpoint_resource_name, image_name, tag)
+    elif args.command == "tear-down":
+        state = EdgeState.load(config)
+        tear_down_edge(config, state)
     else:
         raise Exception(f"{args.command} command is not supported")
 

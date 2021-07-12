@@ -2,7 +2,7 @@ from typing import Optional
 from google.api_core.exceptions import NotFound
 from google.cloud import storage
 from .config import EdgeConfig
-from .state import StorageBucketState
+from .state import StorageBucketState, EdgeState
 
 
 def get_bucket(project_id: str, bucket_name: str) -> Optional[str]:
@@ -26,6 +26,30 @@ def create_bucket(project_id: str, region: str, bucket_name: str) -> str:
     )
     print(f"Bucket created: gs://{bucket.name}/")
     return f"gs://{bucket.name}/"
+
+
+def delete_bucket(project_id: str, region: str, bucket_name: str):
+    client = storage.Client(project_id)
+    bucket = client.get_bucket(bucket_name)
+    print("## Deleting bucket content")
+    bucket.delete_blobs(blobs=list(bucket.list_blobs()))
+    print("## Deleting bucket")
+    bucket.delete(force=True)
+    print("Bucket deleted")
+
+
+def tear_down_storage(_config: EdgeConfig, _state: EdgeState):
+    print("# Tearing down Google Storage")
+    bucket_path = get_bucket(
+        _config.google_cloud_project.project_id,
+        _config.storage_bucket.bucket_name,
+    )
+    if bucket_path is not None:
+        delete_bucket(
+            _config.google_cloud_project.project_id,
+            _config.google_cloud_project.region,
+            _config.storage_bucket.bucket_name,
+        )
 
 
 def setup_storage(_config: EdgeConfig) -> StorageBucketState:
