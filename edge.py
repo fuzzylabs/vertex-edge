@@ -13,6 +13,7 @@ from edge.storage import setup_storage, tear_down_storage
 from edge.dvc import setup_dvc
 from serde.yaml import to_yaml, from_yaml
 from edge.vertex_deploy import vertex_deploy
+from edge.gcloud import get_gcp_regions
 import atexit
 
 config = None
@@ -41,13 +42,23 @@ def input_yn(promt, default) -> bool:
         return True
 
 
+def get_valid_gcp_region():
+    regions = get_gcp_regions()
+    region = ""
+    while region not in regions:
+        region = input("Google Cloud Region: ").strip()
+        if region not in regions:
+            print(f"{region} is not a valid region")
+    return region
+
+
 def create_config(path: str) -> EdgeConfig:
     print("Creating configuration")
 
     print("Configuring GCP")
     google_cloud_project = GCProjectConfig(
         project_id=input("Google Cloud Project ID: ").strip(),
-        region=input("Google Cloud Region: ").strip()
+        region=get_valid_gcp_region()
     )
 
     print()
