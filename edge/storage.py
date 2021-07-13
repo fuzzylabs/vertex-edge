@@ -29,6 +29,8 @@ def get_bucket(project_id: str, bucket_name: str) -> Optional[storage.Bucket]:
 def get_bucket_uri(project_id: str, bucket_name: str) -> Optional[str]:
     print(f"## Checking if {bucket_name} bucket exists")
     bucket = get_bucket(project_id, bucket_name)
+    if bucket is None:
+        return None
     print(f"Bucket found: gs://{bucket.name}/")
     return f"gs://{bucket.name}/"
 
