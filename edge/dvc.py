@@ -1,6 +1,8 @@
+import glob
 import subprocess
 import dvc
 import os
+import shutil
 from edge.config import EdgeConfig
 from edge.state import StorageBucketState
 
@@ -29,12 +31,13 @@ def dvc_init():
 
 
 def dvc_destroy():
-    try:
-        subprocess.check_output("echo y | dvc destroy", shell=True)
-    except subprocess.CalledProcessError as e:
-        print(e.output)
-        print("Error occurred while destroying DVC")
-        exit(1)
+    print("## Deleting DVC configuration [.dvc]")
+    shutil.rmtree(".dvc")
+    print("## Deleting DVC data [data/fashion-mnist/*.dvc]")
+    for f in glob.glob("data/fashion-mnist/*.dvc"):
+        os.remove(f)
+    print("## Deleting pipeline lock file [models/pipelines/fashion/dvc.lock]")
+    os.remove("models/pipelines/fashion/dvc.lock")
     print("DVC is destroyed")
 
 
