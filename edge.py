@@ -42,8 +42,8 @@ def input_yn(promt, default) -> bool:
         return True
 
 
-def get_valid_gcp_region():
-    regions = get_gcp_regions()
+def get_valid_gcp_region(project: str):
+    regions = get_gcp_regions(project)
     region = ""
     while region not in regions:
         region = input("Google Cloud Region: ").strip()
@@ -56,9 +56,11 @@ def create_config(path: str) -> EdgeConfig:
     print("Creating configuration")
 
     print("Configuring GCP")
+    project_id = input("Google Cloud Project ID: ").strip()
+    region = get_valid_gcp_region(project_id)
     google_cloud_project = GCProjectConfig(
-        project_id=input("Google Cloud Project ID: ").strip(),
-        region=get_valid_gcp_region()
+        project_id=project_id,
+        region=region
     )
 
     print()
