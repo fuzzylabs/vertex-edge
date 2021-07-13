@@ -59,7 +59,7 @@ class EdgeState:
         :return: (bool, bool) -- is lock successful, is state to be locked later
         """
         bucket = get_bucket(project, bucket_name)
-        if not bucket.exists():
+        if bucket is None or not bucket.exists():
             print("Google Storage Bucket does not exist, lock later...")
             return False, True
         blob = storage.Blob(f"{blob_name}.lock", bucket)
