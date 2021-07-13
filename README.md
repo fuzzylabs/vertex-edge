@@ -139,6 +139,8 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
+[comment]: <> (add pip version)
+
 ## Authenticate with GCP
 
 ```
@@ -190,9 +192,7 @@ To download [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist) da
 
 ```
 ./seed_data.sh 
-git add data/fashion-mnist/.gitignore data/fashion-mnist/*.dvc
 ```
-
 
 [comment]: <> (* CircleCI setup)
 
