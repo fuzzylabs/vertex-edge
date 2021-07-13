@@ -3,7 +3,7 @@ from serde import serialize, deserialize
 from serde.yaml import to_yaml, from_yaml
 from dataclasses import dataclass
 from google.cloud import storage
-
+from edge.storage import get_bucket, StorageBucketState
 from edge.config import EdgeConfig
 from typing import Type, TypeVar, Optional
 
@@ -20,13 +20,6 @@ class SacredState:
 @dataclass
 class VertexEndpointState:
     endpoint_resource_name: str
-
-
-@deserialize
-@serialize
-@dataclass
-class StorageBucketState:
-    bucket_path: str
 
 
 T = TypeVar('T', bound='EdgeState')
@@ -65,8 +58,7 @@ class EdgeState:
         :param blob_name:
         :return: (bool, bool) -- is lock successful, is state to be locked later
         """
-        client = storage.Client(project=project)
-        bucket = client.bucket(bucket_name)
+        bucket = get_bucket(project, bucket_name)
         if not bucket.exists():
             print("Google Storage Bucket does not exist, lock later...")
             return False, True
@@ -81,8 +73,7 @@ class EdgeState:
 
     @classmethod
     def unlock(cls, project: str, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml"):
-        client = storage.Client(project=project)
-        bucket = client.bucket(bucket_name)
+        bucket = get_bucket(project, bucket_name)
         blob = storage.Blob(f"{blob_name}.lock", bucket)
         if blob.exists():
             blob.delete()

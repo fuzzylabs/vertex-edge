@@ -1,17 +1,34 @@
 from typing import Optional
-from google.api_core.exceptions import NotFound
+from serde import serialize, deserialize
+from dataclasses import dataclass
+from google.api_core.exceptions import NotFound, Forbidden
 from google.cloud import storage
 from .config import EdgeConfig
-from .state import StorageBucketState, EdgeState
 
 
-def get_bucket(project_id: str, bucket_name: str) -> Optional[str]:
-    print(f"## Checking if {bucket_name} bucket exists")
+@deserialize
+@serialize
+@dataclass
+class StorageBucketState:
+    bucket_path: str
+
+
+def get_bucket(project_id: str, bucket_name: str) -> Optional[storage.Bucket]:
     try:
         client = storage.Client(project_id)
         bucket = client.get_bucket(bucket_name)
+        return bucket
     except NotFound:
         return None
+    except Forbidden:
+        print(f"Error: the bucket [{bucket_name}] exists, but you do not have permissions to access it. Maybe it "
+              f"belongs to another project?")
+        exit(1)
+
+
+def get_bucket_uri(project_id: str, bucket_name: str) -> Optional[str]:
+    print(f"## Checking if {bucket_name} bucket exists")
+    bucket = get_bucket(project_id, bucket_name)
     print(f"Bucket found: gs://{bucket.name}/")
     return f"gs://{bucket.name}/"
 
@@ -38,9 +55,9 @@ def delete_bucket(project_id: str, region: str, bucket_name: str):
     print("Bucket deleted")
 
 
-def tear_down_storage(_config: EdgeConfig, _state: EdgeState):
+def tear_down_storage(_config: EdgeConfig, _state):
     print("# Tearing down Google Storage")
-    bucket_path = get_bucket(
+    bucket_path = get_bucket_uri(
         _config.google_cloud_project.project_id,
         _config.storage_bucket.bucket_name,
     )
@@ -54,7 +71,7 @@ def tear_down_storage(_config: EdgeConfig, _state: EdgeState):
 
 def setup_storage(_config: EdgeConfig) -> StorageBucketState:
     print("# Setting up Google Storage")
-    bucket_path = get_bucket(
+    bucket_path = get_bucket_uri(
         _config.google_cloud_project.project_id,
         _config.storage_bucket.bucket_name,
     )
