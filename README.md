@@ -27,9 +27,12 @@ The README has three parts:
 * Next we explain step-by-step how to setup the necessary tools in your GCP environment.
 * Finally, we cover how to train and deploy your first model.
 
+...
+
 * **[Concepts](#concepts)**
 * **[How to run the example - step-by-step](#installing)**
 * **[Training your first model](#running)**
+* **[Setting up CI/CD with CircleCI](#circle)**
 
 <a name="concepts"></a>
 # Concepts
@@ -82,18 +85,21 @@ We use [Sacred](https://github.com/IDSIA/sacred) with [Omniboard](https://github
 While at the start of a project we're usually doing everything locally, on our own computers, we ultimately want the ability to train a model on cloud-based resources. This gives us more computational power, but it also centralises training and prepares us for cloud-based deployment, which will come later.
 
 By this point we've already got a model training pipeline in DVC, but we add an option to run the training itself on Google Vertex. Running it locally is still possible, of course.
-
 <!-- need to explain a little bit more of what the pipeline entails and where the handoff is to GCP. Also, how data is accessed differently in GCP vs local -->
+## Cloud deployment infrastructure (Vertex AI)
+
+
+<!-- todo -->
+
+## Monitoring
+
+<!-- todo: we want it, we haven't done it, and why -->
 
 ## Training plus deployment: CI/CD
 
 Finally, we want to deploy a model. We introduce CI/CD, using Circle CI, for this. A Circle pipeline itself invokes the model pipeline. The model pipeline in turn starts a training job on Vertex. It also pushes an experiment to experiment tracking, and a trained model to the Vertex model registry.
 
 The model is deployed along with an endpoint, which exposes the model for online inference.
-
-## Monitoring
-
-<!-- TODDO -->
 
 ## Project layout
 <!--TODO: explain current layout-->
@@ -177,7 +183,7 @@ gcloud auth application-default login
 ...
 
 ```
-python edge.py config
+./edge.py config
 ```
 
 ## Install on GCP
@@ -185,21 +191,24 @@ python edge.py config
 To setup the project with Google Cloud run:
 
 ```
-python edge.py setup
+./edge.py install
+```
+
+## Uninstall from GCP
+
+If you need to uninstall...
+
+```
+./edge.py uninstall
 ```
 
 <a name="installing"></a>
 # Training your first model
 
-### Experiment tracker
-
-To get the URL of the experiment tracker dashboard:
-```
-python edge.py omniboard
-```
-
+<!-- todo: general explanation of what we'll train, what dataset we'll use. Mention that we're not running the training locally, it's not designed to work this way -->
 
 ## Dataset seeding
+
 When you set up this project with a forked git repo, DVC will not have the dataset in Google Storage.
 To download [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist) dataset and add it to DVC run the following commands:
 
@@ -207,49 +216,76 @@ To download [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist) da
 ./seed_data.sh 
 ```
 
+Follow DVC instructions, GIT commit
+
+```
+dvc push
+```
+
+<!-- link to DVC docs here for remote storage management -->
+
 [comment]: <> (* CircleCI setup)
 
 [comment]: <> (* Running pipelines, deploying model and webapp from local machine)
 
-## DVC pipelines locally
+## Running the training pipeline
 
 ### Pull the dataset
+
+<!-- when running for the first time, this won't do anything, but in general practice we should pull the data before running -->
 
 ```
 dvc pull
 ```
 
 ### Build and push model serving Docker image
+
+<!-- only need to do this if the model serving code has changed -->
+
 ```
-python edge.py docker-vertex-prediction
+./edge.py docker-vertex-prediction
 ```
 
 ### Run training pipeline
+
 ```
 dvc repro models/fashion/dvc.yaml
 ```
 
-### Deploy trained model
+<!-- TODO: add docs link for DVC pipelines -->
+
+## Viewing experiments with the experiment tracker
+
+To get the URL of the experiment tracker dashboard:
+
 ```
-python edge.py vertex-deploy
+./edge.py omniboard
+```
+
+<!-- TODO: explain -->
+
+## Deploy trained model
+```
+./edge.py vertex-deploy
 ```
 
 ## Web app locally
 ### Run locally in docker
 ```
-python edge.py run-webapp
+./edge.py run-webapp
 ```
 
 ### Deploy to Cloud Run
 ```
-python edge.py docker-webapp
-python edge.py cloud-run-webapp
+./edge.py docker-webapp
+./edge.py cloud-run-webapp
 ```
 
-## CircleCI setup
-### Activate project in CircleCI
+<a name="circle"></a>
+# CircleCI setup
+## Activate project in CircleCI
 Follow [the instructions](https://circleci.com/docs/2.0/getting-started/?section=getting-started#setting-up-circleci)
-### Add Google Cloud service account 
+## Add Google Cloud service account 
 Follow [the instructions](https://circleci.com/docs/2.0/google-auth/#creating-and-storing-a-service-account)
 
 Roles that the service account must have:
@@ -258,3 +294,4 @@ Roles that the service account must have:
 * Cloud Run Admin
 * Secret Manager Secret Accessor
 * Storage Admin
+* GKE admin
