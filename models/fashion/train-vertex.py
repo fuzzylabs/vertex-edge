@@ -97,7 +97,7 @@ def main(
         artifact_uri=output_dir,
     )
 
-    with open("../../fashion/vertex_model.json", "w") as f:
+    with open("vertex_model.json", "w") as f:
         json.dump({
             "model_name": model.resource_name,
         }, f)

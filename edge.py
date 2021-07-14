@@ -1,3 +1,4 @@
+#!/bin/env python
 import argparse
 import json
 import os
@@ -293,7 +294,7 @@ def run_docker_service(endpoint_id: str, image_name: str, tag: str = "latest"):
         "-e GOOGLE_APPLICATION_CREDENTIALS='/key.json' "
         f"-e ENDPOINT_ID='{endpoint_id}' "
         "-it -p 8080:8080 "
-        "gcr.io/$PROJECT_ID/fashion-mnist-webapp"
+        f"{image_name}:{tag}"
     )
 
 
@@ -311,7 +312,7 @@ if __name__ == "__main__":
         type=str,
         choices=[
             "config",
-            "setup",
+            "install",
             "force-unlock",
             "omniboard",
             "vertex-endpoint",
@@ -320,13 +321,13 @@ if __name__ == "__main__":
             "docker-webapp",
             "docker-vertex-prediction",
             "cloud-run-webapp",
-            "tear-down"
+            "uninstall"
         ],
         help=textwrap.dedent('''\
             Command to run:
             config -- create a vertex:edge configuration.
-            setup -- setup the project on Google Cloud, according to the configuration 
-                     (and create configuration is does not exist), default.
+            install -- setup the project on Google Cloud, according to the configuration 
+                     (and create configuration is does not exist).
             force-unlock -- unlock state file explicitly
             omniboard -- get Omniboard URL, if it is deployed
             vertex-endpoint -- get Vertex AI endpoint
@@ -335,7 +336,7 @@ if __name__ == "__main__":
             docker-webapp -- build Docker container for the web app and push it to Google Container Registry
             docker-vertex-prediction -- build Docker container for the prediction server and push it to Google Container Registry
             cloud-run-webapp -- deploy the webapp to cloud run
-            tear-down -- tear down Google Cloud infrastructure associated with this project (WARNING DESTRUCTIVE)
+            uninstall -- tear down Google Cloud infrastructure associated with this project (WARNING DESTRUCTIVE)
             ''')
     )
     parser.add_argument(
@@ -369,7 +370,7 @@ if __name__ == "__main__":
         exit(0)
     elif args.command == "docker-vertex-prediction":
         tag = os.environ.get("TAG") or "latest"
-        path = "models/pipelines/fashion"
+        path = "models/fashion"
         image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.vertex.prediction_server_image}"
         build_docker(path, image_name, tag)
         push_docker(image_name, tag)
@@ -387,7 +388,11 @@ if __name__ == "__main__":
         path = "services/fashion-web"
         image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
         build_docker(path, image_name, tag)
-        run_docker_service(state.vertex_endpoint_state.endpoint_resource_name, image_name, tag)
+        run_docker_service(
+            state.vertex_endpoint_state.endpoint_resource_name,
+            image_name,
+            tag
+        )
         exit(0)
 
     state_locked, lock_later = EdgeState.lock(
@@ -401,7 +406,7 @@ if __name__ == "__main__":
     atexit.register(safe_exit, config, state)
 
     # Command that require state and should lock it
-    if args.command == "setup":
+    if args.command == "install":
         setup_edge(config, lock_later)
         exit(0)
     elif args.command == "omniboard":
@@ -417,7 +422,7 @@ if __name__ == "__main__":
         tag = os.environ.get("TAG") or "latest"
         deploy_cloud_run(config, state, tag)
         exit(0)
-    elif args.command == "tear-down":
+    elif args.command == "uninstall":
         tear_down_edge(config, state)
         exit(0)
     else:
