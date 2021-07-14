@@ -1,10 +1,12 @@
 # Vertex-Edge
 
-In this reference example we demonstrate MLOps on Google Cloud Platform with Vertex. This represents what we at Fuzzy Labs consider to be _MLOps done right_.
+[comment]: <>(add the CirclCI widget)
+
+In this reference example we demonstrate MLOps on Google Cloud Platform using [Vertex](https://cloud.google.com/vertex-ai/docs/start). This represents what we at Fuzzy Labs consider to be _MLOps done right_.
 
 ## Motivation
 
-At the beginning of this project, we set out to address the following questions:
+With this project we set out to address the following questions:
 
 <!-- TODO: answers -->
 
@@ -19,10 +21,15 @@ At the beginning of this project, we set out to address the following questions:
 
 ## Table of Contents
 
-The README has two parts. First, we explain the concepts that underlie the reference example. Second, we explain step-by-step how to setup and run the example in your GCP environment.
+The README has three parts:
+
+* First, we explain the concepts that underlie the reference example.
+* Next we explain step-by-step how to setup the necessary tools in your GCP environment.
+* Finally, we cover how to train and deploy your first model.
 
 * **[Concepts](#concepts)**
-* **[How to run the example - step-by-step](#running)**
+* **[How to run the example - step-by-step](#installing)**
+* **[Training your first model](#running)**
 
 <a name="concepts"></a>
 # Concepts
@@ -46,7 +53,7 @@ The data may not be well-understood, and it may be incomplete. It's important to
 * It allows us to track changes over time.
 * It allows us to link every experiment and deployed model to a specific data version.
 
-We use DVC to do data versioning.
+We use [DVC](https://dvc.org) to do data versioning.
 
 ### The code
 
@@ -89,22 +96,28 @@ The model is deployed along with an endpoint, which exposes the model for online
 <!-- TODDO -->
 
 ## Project layout
-<!--
-data/{...}
-models/model1
+<!--TODO: explain current layout-->
 
-models/pipelines/{p1, p2....}   ->
-   every time a pipeline runs, whether locally or on Vertex, an experiment must be logged centrally.
-   What is logged? the tasks themselves (input + output), and the lineage
-   What goes into a lineage? versioned inputs, outputs, versioned data
-   The thing that runs the pipeline builds the lineage
+## Edge setup script
 
-services/...
+<!-- TODO: review / update -->
 
-.circle/pipelines
--->
+The Vertex:Edge setup script (`edge.py`) is written to simplify setting up a machine learning project
+on Google Cloud Platform from scratch
 
-<a name="running"></a>
+It can:
+* Run a configuration wizard and save the resulting config for future use (`edge.yaml`)
+* Set up all the necessary resources in GCP, namely
+    * Initialise DVC in the repository (if not initialised)
+    * Enable required Google Cloud APIs
+    * Create a Storage bucket for dataset and model storage
+    * Set up Vertex AI Endpoint for model deployment
+    * Create Kubernetes cluster and set up Sacred/Omniboard on it for experiment tracking
+* Build and push Docker images for a web app, and for model serving
+* Deploy a web app to Cloud Run
+* Deploy a trained model to Vertex AI
+
+<a name="installing"></a>
 # How to run the example - step-by-step
 
 ## Prerequisites 
@@ -141,6 +154,13 @@ pip install -r requirements.txt
 
 [comment]: <> (add pip version)
 
+## Setting up GCP environment
+
+<!-- TODO -->
+
+* Pre-requisite: a GCP account, link to sign up
+* Next create a project and note down project ID
+
 ## Authenticate with GCP
 
 ```
@@ -148,38 +168,31 @@ gcloud auth login
 gcloud auth application-default login
 ```
 
-## Edge setup script
-The Vertex:Edge setup script (`edge.py`) is written to simplify setting up a machine learning project
-on Google Cloud Platform from scratch
+<!-- TODO: explain specifics of GCloud authentication -->
 
-It can:
-* Run a configuration wizard and save the resulting config for future use (`edge.yaml`)
-* Set up all the necessary resources in GCP, namely
-    * Initialise DVC in the repository (if not initialised)
-    * Enable required Google Cloud APIs
-    * Create a Storage bucket for dataset and model storage
-    * Set up Vertex AI Endpoint for model deployment
-    * Create Kubernetes cluster and set up Sacred/Omniboard on it for experiment tracking
-* Build and push Docker images for a web app, and for model serving
-* Deploy a web app to Cloud Run
-* Deploy a trained model to Vertex AI
+## Run the configuration script
 
+<!-- TODO: configure for your GCP environment -->
 
-### Setup
-To setup the project with Google Cloud run:
-```
-python edge.py setup
-```
+...
 
-This command will run the configuration wizard to create a config (if `edge.yaml` does not exist), and set up 
-Google Cloud resources according to the configuration
-
-To explicitly run configuration wizard and override the config:
 ```
 python edge.py config
 ```
 
+## Install on GCP
+
+To setup the project with Google Cloud run:
+
+```
+python edge.py setup
+```
+
+<a name="installing"></a>
+# Training your first model
+
 ### Experiment tracker
+
 To get the URL of the experiment tracker dashboard:
 ```
 python edge.py omniboard
