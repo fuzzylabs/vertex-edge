@@ -16,6 +16,12 @@ from serde.yaml import to_yaml, from_yaml
 from edge.vertex_deploy import vertex_deploy
 from edge.gcloud import get_gcp_regions
 import atexit
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    "Your application has authenticated using end user credentials from Google Cloud SDK without a quota project."
+)
+
 
 config = None
 state = None
