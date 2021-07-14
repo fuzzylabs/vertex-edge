@@ -355,13 +355,39 @@ if __name__ == "__main__":
         config = create_config(args.config)
     else:
         print("Configuration is found")
-    atexit.register(safe_exit, config, state)
 
     if args.command == "force-unlock":
         EdgeState.unlock(
             config.google_cloud_project.project_id,
             config.storage_bucket.bucket_name
         )
+        exit(0)
+
+    # Commands that do not require state lock
+    if args.command == "config":
+        create_config(args.config)
+        exit(0)
+    elif args.command == "docker-vertex-prediction":
+        tag = os.environ.get("TAG") or "latest"
+        path = "models/pipelines/fashion"
+        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.vertex.prediction_server_image}"
+        build_docker(path, image_name, tag)
+        push_docker(image_name, tag)
+        exit(0)
+    elif args.command == "docker-webapp":
+        tag = os.environ.get("TAG") or "latest"
+        path = "services/fashion-web"
+        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
+        build_docker(path, image_name, tag)
+        push_docker(image_name, tag)
+        exit(0)
+    elif args.command == "run-webapp":
+        tag = os.environ.get("TAG") or "latest"
+        state = EdgeState.load(config)
+        path = "services/fashion-web"
+        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
+        build_docker(path, image_name, tag)
+        run_docker_service(state.vertex_endpoint_state.endpoint_resource_name, image_name, tag)
         exit(0)
 
     state_locked, lock_later = EdgeState.lock(
@@ -372,44 +398,27 @@ if __name__ == "__main__":
         print("Cannot lock state, exiting...")
         exit(1)
     state = EdgeState.load(config)
-    if args.command == "config":
-        create_config(args.config)
-    elif args.command == "setup":
+    atexit.register(safe_exit, config, state)
+
+    # Command that require state and should lock it
+    if args.command == "setup":
         setup_edge(config, lock_later)
+        exit(0)
     elif args.command == "omniboard":
-        state = EdgeState.load(config)
         print(f"Omniboard: {state.sacred_state.external_omniboard_string}")
+        exit(0)
     elif args.command == "vertex-endpoint":
-        state = EdgeState.load(config)
         print(f"{state.vertex_endpoint_state.endpoint_resource_name}")
+        exit(0)
     elif args.command == "vertex-deploy":
-        state = EdgeState.load(config)
         vertex_deploy_from_state(state)
-    elif args.command == "docker-vertex-prediction":
-        tag = os.environ.get("TAG") or "latest"
-        path = "models/pipelines/fashion"
-        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.vertex.prediction_server_image}"
-        build_docker(path, image_name, tag)
-        push_docker(image_name, tag)
-    elif args.command == "docker-webapp":
-        tag = os.environ.get("TAG") or "latest"
-        path = "services/fashion-web"
-        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
-        build_docker(path, image_name, tag)
-        push_docker(image_name, tag)
+        exit(0)
     elif args.command == "cloud-run-webapp":
         tag = os.environ.get("TAG") or "latest"
-        state = EdgeState.load(config)
         deploy_cloud_run(config, state, tag)
-    elif args.command == "run-webapp":
-        tag = os.environ.get("TAG") or "latest"
-        state = EdgeState.load(config)
-        path = "services/fashion-web"
-        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
-        build_docker(path, image_name, tag)
-        run_docker_service(state.vertex_endpoint_state.endpoint_resource_name, image_name, tag)
+        exit(0)
     elif args.command == "tear-down":
-        state = EdgeState.load(config)
         tear_down_edge(config, state)
+        exit(0)
     else:
         raise Exception(f"{args.command} command is not supported")
