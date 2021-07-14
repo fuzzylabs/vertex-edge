@@ -199,11 +199,12 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
             keep_state = True
             print("Storage bucket is kept")
 
-    if input_yn(f"Do you want to stop Cloud Run service: {_config.web_app.cloud_run_service_name}", "n"):
-        print("# Cloud Run service is stopping...")
-        remove_cloud_run(_config)
-    else:
-        print("Cloud Run service is kept")
+    if is_cloud_run_deployed(_config):
+        if input_yn(f"Do you want to stop Cloud Run service: {_config.web_app.cloud_run_service_name}", "n"):
+            print("# Cloud Run service is stopping...")
+            remove_cloud_run(_config)
+        else:
+            print("Cloud Run service is kept")
 
     if keep_state:
         print("Google Storage bucket is still present, so the state is kept")
@@ -248,6 +249,19 @@ def remove_cloud_run(_config: EdgeConfig):
         shell=True,
         env=os.environ.copy()
     )
+
+
+def is_cloud_run_deployed(_config: EdgeConfig) -> bool:
+    services = json.loads(subprocess.check_output(
+        f"gcloud run services list --platform managed --format json \
+        --project {_config.google_cloud_project.project_id} --region {_config.google_cloud_project.region}",
+        shell=True,
+        env=os.environ.copy()
+    ).decode("utf-8"))
+    for service in services:
+        if service["metadata"]["name"] == _config.web_app.cloud_run_service_name:
+            return True
+    return False
 
 
 def vertex_deploy_from_state(state: EdgeState):
