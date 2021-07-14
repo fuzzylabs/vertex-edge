@@ -20,3 +20,6 @@ def enable_api(_config: EdgeConfig):
 
     print("## Secret Manager")
     os.system(f"gcloud services enable secretmanager.googleapis.com --project {project_id}")
+
+    print("## Cloud Run")
+    os.system(f"gcloud services enable run.googleapis.com --project {project_id}")
