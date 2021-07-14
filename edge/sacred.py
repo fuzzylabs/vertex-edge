@@ -127,8 +127,21 @@ def install_mongodb() -> (str, str):
     internal_connection_string = f"mongodb://sacred:{password}@mongodb/sacred"
     external_connection_string = f"mongodb://sacred:{password}@{external_ip}:60000/sacred"
 
+    try:
+        output = subprocess.check_output(
+            "kubectl delete secret mongodb-connection",
+            shell=True,
+            stderr=subprocess.STDOUT
+        )
+    except subprocess.CalledProcessError as exc:
+        if "NotFound" in exc.output.decode("utf-8"):
+            pass  # error expected if the secret was not previously created
+        else:
+            print(exc.output.decode("utf-8"))
+            print("Error while trying to delete mongodb-connection secret")
+    else:
+        print(output.decode("utf-8").strip())
     os.system(
-        "kubectl delete secret mongodb-connection; "
         f"kubectl create secret generic mongodb-connection --from-literal=internal={internal_connection_string}"
     )
 
