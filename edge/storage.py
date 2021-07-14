@@ -22,7 +22,8 @@ def get_bucket(project_id: str, bucket_name: str) -> Optional[storage.Bucket]:
         return None
     except Forbidden:
         print(f"Error: the bucket [{bucket_name}] exists, but you do not have permissions to access it. Maybe it "
-              f"belongs to another project?")
+              f"belongs to another project? For more information on bucket naming see: "
+              f"https://cloud.google.com/storage/docs/naming-buckets")
         exit(1)
 
 
