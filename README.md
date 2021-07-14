@@ -226,7 +226,7 @@ python edge.py docker-vertex-prediction
 
 ### Run training pipeline
 ```
-dvc repro models/pipelines/fashion/dvc.yaml
+dvc repro models/fashion/dvc.yaml
 ```
 
 ### Deploy trained model

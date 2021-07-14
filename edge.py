@@ -1,3 +1,4 @@
+#!/bin/env python
 import argparse
 import json
 import os
@@ -199,11 +200,12 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
             keep_state = True
             print("Storage bucket is kept")
 
-    if input_yn(f"Do you want to stop Cloud Run service: {_config.web_app.cloud_run_service_name}", "n"):
-        print("# Cloud Run service is stopping...")
-        remove_cloud_run(_config)
-    else:
-        print("Cloud Run service is kept")
+    if is_cloud_run_deployed(_config):
+        if input_yn(f"Do you want to stop Cloud Run service: {_config.web_app.cloud_run_service_name}", "n"):
+            print("# Cloud Run service is stopping...")
+            remove_cloud_run(_config)
+        else:
+            print("Cloud Run service is kept")
 
     if keep_state:
         print("Google Storage bucket is still present, so the state is kept")
@@ -250,6 +252,19 @@ def remove_cloud_run(_config: EdgeConfig):
     )
 
 
+def is_cloud_run_deployed(_config: EdgeConfig) -> bool:
+    services = json.loads(subprocess.check_output(
+        f"gcloud run services list --platform managed --format json \
+        --project {_config.google_cloud_project.project_id} --region {_config.google_cloud_project.region}",
+        shell=True,
+        env=os.environ.copy()
+    ).decode("utf-8"))
+    for service in services:
+        if service["metadata"]["name"] == _config.web_app.cloud_run_service_name:
+            return True
+    return False
+
+
 def vertex_deploy_from_state(state: EdgeState):
     with open("models/fashion/vertex_model.json") as f:
         model_dict = json.load(f)
@@ -279,7 +294,7 @@ def run_docker_service(endpoint_id: str, image_name: str, tag: str = "latest"):
         "-e GOOGLE_APPLICATION_CREDENTIALS='/key.json' "
         f"-e ENDPOINT_ID='{endpoint_id}' "
         "-it -p 8080:8080 "
-        "gcr.io/$PROJECT_ID/fashion-mnist-webapp"
+        f"{image_name}:{tag}"
     )
 
 
@@ -297,7 +312,7 @@ if __name__ == "__main__":
         type=str,
         choices=[
             "config",
-            "setup",
+            "install",
             "force-unlock",
             "omniboard",
             "vertex-endpoint",
@@ -306,13 +321,13 @@ if __name__ == "__main__":
             "docker-webapp",
             "docker-vertex-prediction",
             "cloud-run-webapp",
-            "tear-down"
+            "uninstall"
         ],
         help=textwrap.dedent('''\
             Command to run:
             config -- create a vertex:edge configuration.
-            setup -- setup the project on Google Cloud, according to the configuration 
-                     (and create configuration is does not exist), default.
+            install -- setup the project on Google Cloud, according to the configuration 
+                     (and create configuration is does not exist).
             force-unlock -- unlock state file explicitly
             omniboard -- get Omniboard URL, if it is deployed
             vertex-endpoint -- get Vertex AI endpoint
@@ -321,7 +336,7 @@ if __name__ == "__main__":
             docker-webapp -- build Docker container for the web app and push it to Google Container Registry
             docker-vertex-prediction -- build Docker container for the prediction server and push it to Google Container Registry
             cloud-run-webapp -- deploy the webapp to cloud run
-            tear-down -- tear down Google Cloud infrastructure associated with this project (WARNING DESTRUCTIVE)
+            uninstall -- tear down Google Cloud infrastructure associated with this project (WARNING DESTRUCTIVE)
             ''')
     )
     parser.add_argument(
@@ -341,12 +356,42 @@ if __name__ == "__main__":
         config = create_config(args.config)
     else:
         print("Configuration is found")
-    atexit.register(safe_exit, config, state)
 
     if args.command == "force-unlock":
         EdgeState.unlock(
             config.google_cloud_project.project_id,
             config.storage_bucket.bucket_name
+        )
+        exit(0)
+
+    # Commands that do not require state lock
+    if args.command == "config":
+        create_config(args.config)
+        exit(0)
+    elif args.command == "docker-vertex-prediction":
+        tag = os.environ.get("TAG") or "latest"
+        path = "models/fashion"
+        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.vertex.prediction_server_image}"
+        build_docker(path, image_name, tag)
+        push_docker(image_name, tag)
+        exit(0)
+    elif args.command == "docker-webapp":
+        tag = os.environ.get("TAG") or "latest"
+        path = "services/fashion-web"
+        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
+        build_docker(path, image_name, tag)
+        push_docker(image_name, tag)
+        exit(0)
+    elif args.command == "run-webapp":
+        tag = os.environ.get("TAG") or "latest"
+        state = EdgeState.load(config)
+        path = "services/fashion-web"
+        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
+        build_docker(path, image_name, tag)
+        run_docker_service(
+            state.vertex_endpoint_state.endpoint_resource_name,
+            image_name,
+            tag
         )
         exit(0)
 
@@ -358,44 +403,27 @@ if __name__ == "__main__":
         print("Cannot lock state, exiting...")
         exit(1)
     state = EdgeState.load(config)
-    if args.command == "config":
-        create_config(args.config)
-    elif args.command == "setup":
+    atexit.register(safe_exit, config, state)
+
+    # Command that require state and should lock it
+    if args.command == "install":
         setup_edge(config, lock_later)
+        exit(0)
     elif args.command == "omniboard":
-        state = EdgeState.load(config)
         print(f"Omniboard: {state.sacred_state.external_omniboard_string}")
+        exit(0)
     elif args.command == "vertex-endpoint":
-        state = EdgeState.load(config)
         print(f"{state.vertex_endpoint_state.endpoint_resource_name}")
+        exit(0)
     elif args.command == "vertex-deploy":
-        state = EdgeState.load(config)
         vertex_deploy_from_state(state)
-    elif args.command == "docker-vertex-prediction":
-        tag = os.environ.get("TAG") or "latest"
-        path = "models/pipelines/fashion"
-        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.vertex.prediction_server_image}"
-        build_docker(path, image_name, tag)
-        push_docker(image_name, tag)
-    elif args.command == "docker-webapp":
-        tag = os.environ.get("TAG") or "latest"
-        path = "services/fashion-web"
-        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
-        build_docker(path, image_name, tag)
-        push_docker(image_name, tag)
+        exit(0)
     elif args.command == "cloud-run-webapp":
         tag = os.environ.get("TAG") or "latest"
-        state = EdgeState.load(config)
         deploy_cloud_run(config, state, tag)
-    elif args.command == "run-webapp":
-        tag = os.environ.get("TAG") or "latest"
-        state = EdgeState.load(config)
-        path = "services/fashion-web"
-        image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
-        build_docker(path, image_name, tag)
-        run_docker_service(state.vertex_endpoint_state.endpoint_resource_name, image_name, tag)
-    elif args.command == "tear-down":
-        state = EdgeState.load(config)
+        exit(0)
+    elif args.command == "uninstall":
         tear_down_edge(config, state)
+        exit(0)
     else:
         raise Exception(f"{args.command} command is not supported")

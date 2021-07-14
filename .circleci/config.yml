@@ -43,7 +43,7 @@ jobs:
     executor:
       name: python/default
       tag: 3.8.0
-    working_directory: ~/project/models/pipelines/<< parameters.pipeline_name >>
+    working_directory: ~/project/pipelines/<< parameters.pipeline_name >>
     steps:
       - checkout:
           path: ~/project
@@ -62,7 +62,7 @@ jobs:
           no_output_timeout: 30m
           command: |
             export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
-            cd ../../../ && python edge.py vertex-deploy
+            cd ../../ && python edge.py vertex-deploy
   build-docker:
     executor:
       name: python/default
@@ -110,7 +110,7 @@ workflows:
     jobs:
       - python-test:
           name: model-pipeline-python-tests
-          path: models/pipelines/fashion
+          path: models/fashion
       - build-docker:
           name: prediction-server-build-docker
           edge_command: docker-vertex-prediction
