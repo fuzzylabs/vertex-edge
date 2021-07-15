@@ -4,6 +4,7 @@ from starlette.routing import Route
 from starlette.responses import JSONResponse
 from starlette.templating import Jinja2Templates
 from google.cloud.aiplatform import Endpoint
+from image import prepare
 import os
 
 endpoint_id = os.environ.get("ENDPOINT_ID")
