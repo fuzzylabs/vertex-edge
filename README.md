@@ -35,7 +35,7 @@ A machine learning model passes through a few stages of life. Let's look at thos
 
 ## Experimental phase
 
-We imagine a team of data scientists starting from scratch on a particular problem. Every problem is different but we can still introduce some tools in this phase that will make life easier.
+Imagine a team of data scientists starting a project from scratch. At this stage there are numerous unknowns, but we can still introduce some tools that will make life easier.
 
 ### The data
 
@@ -43,21 +43,26 @@ The data may not be well-understood, and it may be incomplete. It's important to
 
 * It's easier for a team to share data while ensuring that everybody is working with the same version of that data.
 * It allows us to track changes over time.
-* It allows us to link every experiment and deployed model to a specific data version.
+* We can link every experiment and deployed model to a specific data version.
 
-We use [DVC](https://dvc.org) to do data versioning.
+We use [DVC](https://dvc.org) to do data versioning. DVC has a number of other features, including pipelines, which we'll discuss next.
 
 ### The code
 
-As we're going to be training a model, we're going to need to write some code as well. Code versioning is just as important as data versioning, for exactly the same reasons as stated above.
+Ultimately we want to train a model, so we'll need to write some code as well. Code versioning is just as important as data versioning, for exactly the same reasons as stated above.
 
-We're using Git to track code versions. Additionally, it's worth noting that DVC interoperates with Git, so this single code repository is enough to get somebody up-and-running with everything they will need in order to train the model.
+We're using Git to track code versions. It's worth noting that DVC interoperates with Git, so this single code repository is enough to get somebody up-and-running with everything they will need in order to train the model.
 
-Training a model involves a few steps. At the very least, we must prepare data and then run a training script. We use DVC to specify a training pipeline. Something to keep in mind: we're going to be talking about two different kinds of pipeline: as well as the model training pipeline, there will be a deployment pipeline, which we'll come to soon.
+Training a model involves a few steps. At the very least, we must prepare data and then run a training script. We use DVC to specify a training pipeline. Something to keep in mind: we're going to be talking about two different kinds of pipeline:
 
-### The experiments
+* **Model training pipeline** - a DVC pipeline which first prepares the training data, and then trains a model.
+* **CI / CD pipeline** - using [CircleCI](https://circleci.com) we can combine training and deployment into a single pipeline.
 
-Every run of the model pipeline gets logged to a central location. Specifically, we record:
+This admittedly gets a little bit confusing, because 'pipeline' means two different things depending on the context. The CI/CD pipeline itself runs the model training pipeline.
+
+### Experiments
+
+Every run of the model training pipeline gets logged to a central location. Any time we run this pipeline, we call that an experiment. In any experiment, we record:
 
 * When it ran, who ran it, and where it ran.
 * The Git commit associated with the experiment.
@@ -67,22 +72,30 @@ Every run of the model pipeline gets logged to a central location. Specifically,
 
 This way, anybody on the team is able to review past experiments and reproduce them consistently.
 
-We use [Sacred](https://github.com/IDSIA/sacred) with [Omniboard](https://github.com/vivekratnavel/omniboard) for experiment tracking.
+We use [Sacred](https://github.com/IDSIA/sacred) with [Omniboard](https://github.com/vivekratnavel/omniboard) for experiment tracking (MongoDB is used as the backing database). The _vertex:edge_ tool will install the experiment tracker into your GCP environment so that you can log and review experiments.
 
 ## Adding cloud training infrastructure (Vertex AI)
 
-While at the start of a project we're usually doing everything locally, on our own computers, we ultimately want the ability to train a model on cloud-based resources. This gives us more computational power, but it also centralises training and prepares us for cloud-based deployment, which will come later.
+When it comes to training our model, we want to use cloud-based resources. This gives us more computational power, but it also centralises training and prepares us for cloud-based deployment, which will come later.
 
-By this point we've already got a model training pipeline in DVC, but we add an option to run the training itself on Google Vertex. Running it locally is still possible, of course.
-<!-- need to explain a little bit more of what the pipeline entails and where the handoff is to GCP. Also, how data is accessed differently in GCP vs local -->
+Vertex can already train models in the cloud - that's what it does best! - but we also want it to work seamlessly with data versioning and experiment tracking.
+
+The DVC model training pipeline has two steps:
+
+* Data preparation: generate a training and testing dataset.
+* Train: execute a training script on Vertex and capture the resulting model.
+
 ## Cloud deployment infrastructure (Vertex AI)
-
 
 <!-- todo -->
 
 ## Monitoring
 
-<!-- todo: we want it, we haven't done it, and why -->
+Once a model has been deployed, we'd ideally like to monitor it. The purpose of monitoring a model is to make us aware of changes to its behaviour. Changes come for example through shifts in the input data. Additionally, we want to know about potential biases in the training data.
+
+In response to monitoring we can make informed decisions. For instance we might decide to re-train the model with new data if we feel that this model no longer reflects reality in some way.
+
+We haven't implemented any monitoring so far in this project, but this is something we'd like to add in the future.
 
 ## Training plus deployment: CI/CD
 
@@ -91,26 +104,32 @@ Finally, we want to deploy a model. We introduce CI/CD, using Circle CI, for thi
 The model is deployed along with an endpoint, which exposes the model for online inference.
 
 ## Project layout
-<!--TODO: explain current layout-->
+
+Here's a brief guide to how this project is organised:
+
+* [data](data) - data used for our example model. This data comes from the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) dataset. We _don't commit the data_ to Git; DVC manages the data.
+* [edge](edge) - code for the vertex:edge tool.
+* [models](models) - each model has its own sub-directory under `models`, and within each model directory we have training code and the training pipeline.
+* [services](services) - models by themselves aren't useful without things that interact with the model. `services` contains deployable web services that interact with models.
 
 ## Edge setup script
 
-<!-- TODO: review / update -->
-
-The Vertex:Edge setup script (`edge.py`) is written to simplify setting up a machine learning project
-on Google Cloud Platform from scratch
+Finally, we come to the vertex:edge tool (`edge.py`) whose purpose is to simplify setting up a machine learning project on Google Cloud Platform from scratch.
 
 It can:
-* Run a configuration wizard and save the resulting config for future use (`edge.yaml`)
+
+* Run a configuration wizard and save the resulting config for future use.
 * Set up all the necessary resources in GCP, namely
-    * Initialise DVC in the repository (if not initialised)
-    * Enable required Google Cloud APIs
-    * Create a Storage bucket for dataset and model storage
-    * Set up Vertex AI Endpoint for model deployment
-    * Create Kubernetes cluster and set up Sacred/Omniboard on it for experiment tracking
-* Build and push Docker images for a web app, and for model serving
-* Deploy a web app to Cloud Run
-* Deploy a trained model to Vertex AI
+    * Initialise DVC in the repository.
+    * Enable required Google Cloud APIs.
+    * Create a Storage bucket for dataset and model storage.
+    * Set up Vertex AI Endpoint for model deployment.
+    * Create Kubernetes cluster and set up Sacred / Omniboard on it for experiment tracking.
+* Build and push Docker images for a web app, and for model serving.
+* Deploy a web app to Cloud Run.
+* Deploy a trained model to Vertex AI.
+
+Next we'll look at how to use this script to setup an MLOps-ready project in GCP.
 
 <a name="installing"></a>
 # How to run the example - step-by-step
