@@ -150,6 +150,7 @@ def setup_edge(_config: EdgeConfig, lock_later: bool):
     print()
 
     enable_api(_config)
+    print()
 
     storage_bucket_output = setup_storage(_config)
     if lock_later:
@@ -157,12 +158,16 @@ def setup_edge(_config: EdgeConfig, lock_later: bool):
             config.google_cloud_project.project_id,
             config.storage_bucket.bucket_name
         )
+    print()
 
     setup_dvc(_config, storage_bucket_output)
+    print()
 
     sacred_output = setup_sacred(_config)
+    print()
 
     vertex_endpoint_output = setup_endpoint(_config)
+    print()
 
     state = EdgeState(
         vertex_endpoint_output,
@@ -191,6 +196,7 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
             _state.vertex_endpoint_state = None
         else:
             print("Vertex AI endpoint is kept")
+        print()
 
     if _state.sacred_state is not None:
         if input_yn(
@@ -202,6 +208,7 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
             _state.sacred_state = None
         else:
             print("Sacred cluster is kept")
+        print()
 
     if _state.storage_bucket_state is not None:
         if input_yn(f"Do you want to destroy Google Storage bucket: {_config.storage_bucket.bucket_name}", "n"):
@@ -210,6 +217,7 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
         else:
             keep_state = True
             print("Storage bucket is kept")
+        print()
 
     if is_cloud_run_deployed(_config):
         if input_yn(f"Do you want to stop Cloud Run service: {_config.web_app.cloud_run_service_name}", "n"):
@@ -217,6 +225,7 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
             remove_cloud_run(_config)
         else:
             print("Cloud Run service is kept")
+        print()
 
     if keep_state:
         print("Google Storage bucket is still present, so the state is kept")
