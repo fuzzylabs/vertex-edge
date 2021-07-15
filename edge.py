@@ -150,6 +150,7 @@ def setup_edge(_config: EdgeConfig, lock_later: bool):
     print()
 
     enable_api(_config)
+    print()
 
     storage_bucket_output = setup_storage(_config)
     if lock_later:
@@ -157,12 +158,16 @@ def setup_edge(_config: EdgeConfig, lock_later: bool):
             config.google_cloud_project.project_id,
             config.storage_bucket.bucket_name
         )
+    print()
 
     setup_dvc(_config, storage_bucket_output)
+    print()
 
     sacred_output = setup_sacred(_config)
+    print()
 
     vertex_endpoint_output = setup_endpoint(_config)
+    print()
 
     state = EdgeState(
         vertex_endpoint_output,
