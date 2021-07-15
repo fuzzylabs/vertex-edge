@@ -55,7 +55,8 @@ def get_valid_gcp_region(project: str):
     while region not in regions:
         region = input("Google Cloud Region: ").strip()
         if region not in regions:
-            print(f"{region} is not a valid region")
+            print(f"{region} is not a region that is available in Vertex AI. Choose one of the regions below:")
+            print("\n".join([f"\t{x}" for x in regions]))
     return region
 
 
@@ -85,8 +86,8 @@ def create_config(path: str) -> EdgeConfig:
     print("Configuring Storage Bucket")
     storage_bucket = StorageBucketConfig(
         bucket_name=input_with_default(f"Storage bucket name [{vertex.model_name}-model]: ", f"{model_name}-model"),
-        dvc_store_directory=input_with_default("DVC store directory [dvcstore]: ", "dvcstore"),
-        vertex_jobs_directory=input_with_default("Vertex AI jobs directory [vertex]: ", "vertex")
+        dvc_store_directory=input_with_default("DVC store directory within the bucket [dvcstore]: ", "dvcstore"),
+        vertex_jobs_directory=input_with_default("Vertex AI jobs directory within the bucket [vertex]: ", "vertex")
     )
 
     print()
