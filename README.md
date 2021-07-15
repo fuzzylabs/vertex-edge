@@ -135,8 +135,10 @@ Next we'll look at how to use this script to setup an MLOps-ready project in GCP
 # How to run the example - step-by-step
 
 ## Prerequisites 
+
 * Python 3
-* gcloud
+* [pyenv](https://github.com/pyenv/pyen)
+* [gcloud command line tool](https://cloud.google.com/sdk/docs/install)
 * helm
 * kubectl
 
@@ -154,9 +156,9 @@ The Python version for this project is kept in [.python-version](.python-version
 pyenv local
 ```
 
-After this, run `python --version` and ensure that it matches the version states in [.python-version](.python-version).
+Now if you run `python --version` it will match what's in [.python-version](.python-version).
 
-### Dependencies (venv + PIP)
+### Python dependencies (venv + PIP)
 
 With the correct version of Python set up, we'll use [Python venv](https://docs.python.org/3/library/venv.html) to provide an isolated Python environment, and [PIP](https://pypi.org/project/pip) to install and manage Python dependencies.
 
@@ -170,23 +172,22 @@ pip install -r requirements.txt
 
 ## Setting up GCP environment
 
-<!-- TODO -->
-
-* Pre-requisite: a GCP account, link to sign up
-* Next create a project and note down project ID
+Now you'll need a [GCP account](https://cloud.google.com), so sign up for one if you haven't already done so. Within your GCP account, [create a new project](https://cloud.google.com/resource-manager/docs/creating-managing-projects), or you can use an existing project if you prefer.
 
 ## Authenticate with GCP
+
+If you haven't got the `gcloud` command line tool, [install it now](https://cloud.google.com/sdk/docs/install).
+
+Then authenticate:
 
 ```
 gcloud auth login
 gcloud auth application-default login
 ```
 
-<!-- TODO: explain specifics of GCloud authentication -->
+## Configure vertex:edge for your GCP environment
 
-## Run the configuration script
 
-<!-- TODO: configure for your GCP environment -->
 
 ...
 
