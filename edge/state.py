@@ -75,6 +75,7 @@ class EdgeState:
     def unlock(cls, project: str, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml"):
         bucket = get_bucket(project, bucket_name)
         blob = storage.Blob(f"{blob_name}.lock", bucket)
-        if blob.exists():
+
+        if bucket is not None and blob.exists():
             blob.delete()
-        print("State file unlocked")
+            print("State file unlocked")

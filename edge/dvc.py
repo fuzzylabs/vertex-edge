@@ -89,18 +89,18 @@ def dvc_add_remote(path: str):
 
 def setup_dvc(_config: EdgeConfig, storage_state: StorageBucketState):
     storage_path = os.path.join(storage_state.bucket_path, _config.storage_bucket.dvc_store_directory)
-    print("# Setting up DVC")
+    print("# Setting up data versioning with DVC")
     print("## Checking if DVC is already initialised")
     exists = dvc_exists()
     if exists:
-        print("DVC is initialised")
+        print("DVC is already initialised")
         if storage_path != get_dvc_storage_path():
             print(
                 f"DVC remote storage does not match vertex:edge config: expected -- {storage_path}, "
                 f"got -- {get_dvc_storage_path()}"
             )
             print("WARNING: To use the new Google Storage bucket it is advised to destroy DVC repository, "
-                  "and initialise from scratch.")
+                  "and initialise it from scratch.")
             choice = None
             while choice not in ["y", "n"]:
                 choice = input("Do you want to destroy DVC and initialise it from scratch (y/n)? [n]: ").strip().lower()

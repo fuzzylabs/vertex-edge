@@ -19,7 +19,7 @@ def get_endpoint(project_id: str, region: str, endpoint_name: str) -> Optional[s
 
 
 def create_endpoint(project_id: str, region: str, endpoint_name: str) -> str:
-    print(f"## Creating {endpoint_name} endpoint")
+    print(f"## Creating '{endpoint_name}' endpoint")
     endpoint = aiplatform.Endpoint.create(
         display_name=endpoint_name,
         project=project_id,
@@ -31,7 +31,7 @@ def create_endpoint(project_id: str, region: str, endpoint_name: str) -> str:
 
 
 def setup_endpoint(_config: EdgeConfig) -> VertexEndpointState:
-    print("# Setting up Vertex AI endpoint")
+    print("# Setting up Vertex AI endpoint for model deployment")
     endpoint_name = f"{_config.vertex.model_name}-endpoint"
     endpoint_resource_name = get_endpoint(
         _config.google_cloud_project.project_id,

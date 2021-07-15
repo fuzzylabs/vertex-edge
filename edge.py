@@ -193,7 +193,11 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
             print("Vertex AI endpoint is kept")
 
     if _state.sacred_state is not None:
-        if input_yn(f"Do you want to destroy Sacred GKE cluster: {_config.sacred.gke_cluster_name}", "n"):
+        if input_yn(
+                f"Do you want to destroy experiment tracker Kubernetes cluster (MongoDB+Omniboard): "
+                f"{_config.sacred.gke_cluster_name}",
+                "n"
+        ):
             tear_down_sacred(_config, _state)
             _state.sacred_state = None
         else:
@@ -312,7 +316,7 @@ def safe_exit(_config: EdgeConfig, _state: Optional[EdgeState]):
     )
 
 
-def aquire_state(_config: EdgeConfig) -> (Optional[EdgeState], bool):
+def acquire_state(_config: EdgeConfig) -> (Optional[EdgeState], bool):
     state_locked, lock_later = EdgeState.lock(
         config.google_cloud_project.project_id,
         config.storage_bucket.bucket_name
@@ -334,12 +338,18 @@ def vertex_handler(_config, _args):
         push_docker(image_name, tag)
         exit(0)
     elif _args.action == "get-endpoint":
-        state, _ = aquire_state(_config)
-        print(f"{state.vertex_endpoint_state.endpoint_resource_name}")
+        state, _ = acquire_state(_config)
+        if state is None or state.vertex_endpoint_state is None:
+            print("Vertex AI endpoint is not deployed, run `./edge.py install` to deploy it")
+        else:
+            print(f"{state.vertex_endpoint_state.endpoint_resource_name}")
         exit(0)
     elif _args.action == "deploy":
-        state, _ = aquire_state(_config)
-        vertex_deploy_from_state(state)
+        state, _ = acquire_state(_config)
+        if state is None or state.vertex_endpoint_state is None:
+            print("Vertex AI endpoint is not deployed, run `./edge.py install` to deploy it")
+        else:
+            vertex_deploy_from_state(state)
         exit(0)
 
 
@@ -364,7 +374,7 @@ def webapp_handler(_config, _args):
         )
         exit(0)
     elif _args.action == "deploy":
-        state, _ = aquire_state(_config)
+        state, _ = acquire_state(_config)
         tag = os.environ.get("TAG") or "latest"
         deploy_cloud_run(config, state, tag)
         exit(0)
@@ -440,15 +450,21 @@ if __name__ == "__main__":
         exit(0)
 
     # Command that require state and should lock it
-    state, lock_later = aquire_state(config)
+    state, lock_later = acquire_state(config)
     if args.command == "install":
         setup_edge(config, lock_later)
         exit(0)
     elif args.command == "omniboard":
-        print(f"Omniboard: {state.sacred_state.external_omniboard_string}")
+        if state is None or state.sacred_state is None:
+            print("Omniboard is not deployed")
+        else:
+            print(f"Omniboard: {state.sacred_state.external_omniboard_string}")
         exit(0)
     elif args.command == "uninstall":
-        tear_down_edge(config, state)
+        if state is None:
+            print("Vertex:Edge state does not exist, nothing to uninstall.")
+        else:
+            tear_down_edge(config, state)
         exit(0)
     else:
         raise Exception(f"{args.command} command is not supported")

@@ -12,7 +12,7 @@ from sacred.observers import MongoObserver
 
 
 def create_cluster(project_id: str, region: str, cluster_name: str) -> Cluster:
-    print("## Creating cluster")
+    print("## Creating Kubernetes cluster on GKE")
     print(f"Checking if '{cluster_name}' cluster exists")
     client = container_v1.ClusterManagerClient()
     try:
@@ -153,7 +153,7 @@ def install_mongodb() -> (str, str):
 
 
 def install_omniboard() -> str:
-    print("## Installing Omniboard")
+    print("## Installing Omniboard (Web UI)")
     try:
         subprocess.check_output("kubectl apply -f edge/k8s/omniboard.yaml", shell=True)
     except subprocess.CalledProcessError as e:
@@ -233,7 +233,7 @@ def delete_cluster(_config: EdgeConfig):
 
 
 def setup_sacred(_config: EdgeConfig):
-    print("# Setting up Sacred+Omniboard")
+    print("# Setting up MongoDB for experiment tracking (Sacred and Omniboard)")
 
     create_cluster(
         _config.google_cloud_project.project_id,
