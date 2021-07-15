@@ -62,7 +62,7 @@ jobs:
           no_output_timeout: 30m
           command: |
             export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
-            cd ../../ && python edge.py vertex-deploy
+            cd ../../ && python edge.py vertex deploy
   build-docker:
     executor:
       name: python/default
@@ -103,7 +103,7 @@ jobs:
           name: Deploy Cloud Run
           command: |
             export GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json
-            TAG=${CIRCLE_SHA1} python edge.py cloud-run-webapp
+            TAG=${CIRCLE_SHA1} python edge.py webapp deploy
 workflows:
   version: 2
   reference-example:
@@ -113,7 +113,7 @@ workflows:
           path: models/fashion
       - build-docker:
           name: prediction-server-build-docker
-          edge_command: docker-vertex-prediction
+          edge_command: "vertex build-docker"
           filters:
             branches:
               only:
@@ -135,7 +135,7 @@ workflows:
           path: services/fashion-web/
       - build-docker:
           name: webapp-build-docker
-          edge_command: docker-webapp
+          edge_command: "webapp build-docker"
           requires:
             - webapp-python-tests
           filters:

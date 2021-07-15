@@ -244,7 +244,7 @@ dvc pull
 <!-- only need to do this if the model serving code has changed -->
 
 ```
-./edge.py docker-vertex-prediction
+./edge.py vertex build-docker
 ```
 
 ### Run training pipeline
@@ -267,19 +267,19 @@ To get the URL of the experiment tracker dashboard:
 
 ## Deploy trained model
 ```
-./edge.py vertex-deploy
+./edge.py vertex deploy
 ```
 
 ## Web app locally
 ### Run locally in docker
 ```
-./edge.py run-webapp
+./edge.py webapp run
 ```
 
 ### Deploy to Cloud Run
 ```
-./edge.py docker-webapp
-./edge.py cloud-run-webapp
+./edge.py webapp build-docker
+./edge.py webapp deploy
 ```
 
 <a name="circle"></a>
