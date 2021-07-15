@@ -1,9 +1,8 @@
-# Vertex-Edge
+# Vertex:edge
+
 [![CircleCI](https://circleci.com/gh/fuzzylabs/vertex-edge/tree/master.svg?style=svg)](https://circleci.com/gh/fuzzylabs/vertex-edge/tree/master)
 
-[comment]: <>(add the CirclCI widget)
-
-In this reference example we demonstrate MLOps on Google Cloud Platform using [Vertex](https://cloud.google.com/vertex-ai/docs/start). This represents what we at Fuzzy Labs consider to be _MLOps done right_.
+This repository showcases _edge_, a tool for deploying models to [Vertex](https://cloud.google.com/vertex-ai/docs/start) on [Google Cloud Platform](https://cloud.google.com). We've also provided a reference example that shows how to train and deploy a simple model to GCP, and we show how to get up-and-running with everything you need to do MLOps _right_ (in our opinion).
 
 ## Motivation
 
@@ -22,27 +21,17 @@ With this project we set out to address the following questions:
 
 ## Table of Contents
 
-The README has three parts:
-
-* First, we explain the concepts that underlie the reference example.
-* Next we explain step-by-step how to setup the necessary tools in your GCP environment.
-* Finally, we cover how to train and deploy your first model.
-
-...
-
-* **[Concepts](#concepts)**
-* **[How to run the example - step-by-step](#installing)**
-* **[Training your first model](#running)**
+* **[Concepts](#concepts)** - the underlying MLOps concepts in this example.
+* **[Installing on your GCP environment](#installing)**
+* **[Training your first model in GCP](#running)**
 * **[Setting up CI/CD with CircleCI](#circle)**
 
 <a name="concepts"></a>
 # Concepts
 
-<!-- perhaps move this paragraph further down -->
 Any productionised machine learning project will consist not only of models but other software components that are necessary in order to make those models useful. We will typically be building models along-side other pieces of software. Both of these need to be tracked, deployed, and monitored, but the approach taken for models differs somewhat from other kinds of software.
-<!-- -->
 
-A machine learning model passes through a few stages of maturity:
+A machine learning model passes through a few stages of life. Let's look at those stages.
 
 ## Experimental phase
 
@@ -50,7 +39,6 @@ We imagine a team of data scientists starting from scratch on a particular probl
 
 ### The data
 
-<!-- what about VC on unstructured data? -->
 The data may not be well-understood, and it may be incomplete. It's important to have data version control from the very start, because:
 
 * It's easier for a team to share data while ensuring that everybody is working with the same version of that data.
@@ -203,7 +191,7 @@ If you need to uninstall...
 ./edge.py uninstall
 ```
 
-<a name="installing"></a>
+<a name="running"></a>
 # Training your first model
 
 <!-- todo: general explanation of what we'll train, what dataset we'll use. Mention that we're not running the training locally, it's not designed to work this way -->
