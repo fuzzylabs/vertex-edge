@@ -1,4 +1,5 @@
 # Vertex-Edge
+[![CircleCI](https://circleci.com/gh/fuzzylabs/vertex-edge/tree/master.svg?style=svg)](https://circleci.com/gh/fuzzylabs/vertex-edge/tree/master)
 
 [comment]: <>(add the CirclCI widget)
 
