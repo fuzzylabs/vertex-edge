@@ -132,7 +132,9 @@ It can:
 Next we'll look at how to use this script to setup an MLOps-ready project in GCP.
 
 <a name="installing"></a>
-# How to run the example - step-by-step
+# Installing on your GCP environment
+
+We recommend forking this repository at this point. You'll be changing configuration files, and so you'll want your own repo so you can push the changes.
 
 ## Prerequisites 
 
@@ -178,26 +180,33 @@ Now you'll need a [GCP account](https://cloud.google.com), so sign up for one if
 
 If you haven't got the `gcloud` command line tool, [install it now](https://cloud.google.com/sdk/docs/install).
 
-Then authenticate:
+Then authenticate by running:
 
 ```
 gcloud auth login
+```
+
+Followed by
+
+```
 gcloud auth application-default login
 ```
 
 ## Configure vertex:edge for your GCP environment
 
+The configuration file `edge.yaml` contains all the information needed to setup tools and models in GCP. The `edge.yaml` that we've provided is only an example; you'll need to create your own.
 
-
-...
+To start the configuration wizard, run
 
 ```
 ./edge.py config
 ```
 
+This will ask you a series of questions and then it will overwrite `edge.yaml` with your new configuration.
+
 ## Install on GCP
 
-To setup the project with Google Cloud run:
+If you're happy with the configuration, you're now ready to install all the things:
 
 ```
 ./edge.py install
@@ -205,7 +214,7 @@ To setup the project with Google Cloud run:
 
 ## Uninstall from GCP
 
-If you need to uninstall...
+If for any reason you need to undo the installation, you can uninstall using
 
 ```
 ./edge.py uninstall
@@ -215,21 +224,25 @@ If you need to uninstall...
 # Training your first model
 
 <!-- todo: general explanation of what we'll train, what dataset we'll use. Mention that we're not running the training locally, it's not designed to work this way -->
+So, you've forked this repository, you've configured and installed all of the tools on GCP, and finally you're ready to train a model - yay!
+
+The model that we're going to train is based on the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) dataset. Some important things to remember:
+
+* We don't store the datasets in Git, so before you can train the model, you'll need to download the dataset and initialise DVC (data version control).
+* All training is done on Vertex. We currently don't support local training, i.e. running the training script on your own computer.
 
 ## Dataset seeding
 
-When you set up this project with a forked git repo, DVC will not have the dataset in Google Storage.
-To download [Fashion-MNIST](https://github.com/zalandoresearch/fashion-mnist) dataset and add it to DVC run the following commands:
+We need to download the original dataset, which is simple enough. But we also want to setup data version control, and we want to ensure that the data is backed to a central location.
+
+Having ran the installation script, you already have a Cloud Storage Bucket which will serve as the central location. We'll run two commands:
 
 ```
 ./seed_data.sh 
-```
-
-Follow DVC instructions, GIT commit
-
-```
 dvc push
 ```
+
+The `seed_data.sh` script downloads the dataset and registers it with DVC. Then, `dvc push` will push that data up to the Cloud Storage bucket (similar to `git push`).
 
 <!-- link to DVC docs here for remote storage management -->
 
@@ -241,7 +254,7 @@ dvc push
 
 ### Pull the dataset
 
-<!-- when running for the first time, this won't do anything, but in general practice we should pull the data before running -->
+Start by making sure you are using the most recent data version:
 
 ```
 dvc pull
@@ -249,7 +262,7 @@ dvc pull
 
 ### Build and push model serving Docker image
 
-<!-- only need to do this if the model serving code has changed -->
+We need to build a custom Docker image, which will be used for serving the model. The `edge` script takes care of building and pushing this to GCP:
 
 ```
 ./edge.py vertex build-docker
@@ -257,34 +270,48 @@ dvc pull
 
 ### Run training pipeline
 
+Earlier we mentioned that we use DVC to provide the model training pipeline. This pipeline will execute the model training step on Vertex:
+
 ```
 dvc repro models/fashion/dvc.yaml
 ```
+
+After having ran this, a custom training job will appear under https://console.cloud.google.com/vertex-ai/training/custom-jobs.
 
 <!-- TODO: add docs link for DVC pipelines -->
 
 ## Viewing experiments with the experiment tracker
 
-To get the URL of the experiment tracker dashboard:
+Each run of the training pipeline gets logged to the experiment tracker. To view experiments, you'll first need to get the dashboard URL:
 
 ```
 ./edge.py omniboard
 ```
 
-<!-- TODO: explain -->
+If you visit this URL in a browser you will see the history of all experiments.
 
-## Deploy trained model
+## Deploying the trained model
+
+You can now deploy the trained model to Vertex:
+
 ```
 ./edge.py vertex deploy
 ```
 
-## Web app locally
+Having ran this, a model will be available under https://console.cloud.google.com/vertex-ai/models
+
+## Using the demo web app
+
+The demo web app is a simple web application that is intended to work with the fashion model that we trained before. There are two ways to run it: you can run it in Docker locally, or deploy it to GCP Cloud Run.
+
 ### Run locally in docker
+
 ```
 ./edge.py webapp run
 ```
 
 ### Deploy to Cloud Run
+
 ```
 ./edge.py webapp build-docker
 ./edge.py webapp deploy
@@ -292,12 +319,17 @@ To get the URL of the experiment tracker dashboard:
 
 <a name="circle"></a>
 # CircleCI setup
+
 ## Activate project in CircleCI
+
 Follow [the instructions](https://circleci.com/docs/2.0/getting-started/?section=getting-started#setting-up-circleci)
+
 ## Add Google Cloud service account 
+
 Follow [the instructions](https://circleci.com/docs/2.0/google-auth/#creating-and-storing-a-service-account)
 
-Roles that the service account must have:
+This service account must have the following roles:
+
 * Vertex AI user
 * Service Account User
 * Cloud Run Admin
