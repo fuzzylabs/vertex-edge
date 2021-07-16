@@ -33,7 +33,6 @@ jobs:
     steps:
       - checkout:
           path: ~/project
-      - pin_pip_version
       - python/install-packages:
           pkg-manager: pip
       - run:
