@@ -122,19 +122,19 @@ workflows:
           edge_command: "vertex build-docker"
           requires:
             - model-pipeline-python-tests
-#          filters:
-#            branches:
-#              only:
-#                - master
+          filters:
+            branches:
+              only:
+                - master
       - run-dvc-pipeline:
           name: reference-example-dvc-pipeline
           pipeline_name: fashion
           requires:
             - prediction-server-build-docker
-#          filters:
-#            branches:
-#              only:
-#                - master
+          filters:
+            branches:
+              only:
+                - master
 
   webapp:
     jobs:
@@ -146,15 +146,15 @@ workflows:
           edge_command: "webapp build-docker"
           requires:
             - webapp-python-tests
-#          filters:
-#            branches:
-#              only:
-#                - master
+          filters:
+            branches:
+              only:
+                - master
       - cloud-run-deploy:
           name: webapp-cloud-run-deploy
           requires:
             - webapp-build-docker
-#          filters:
-#            branches:
-#              only:
-#                - master
+          filters:
+            branches:
+              only:
+                - master
