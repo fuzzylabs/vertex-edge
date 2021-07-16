@@ -59,7 +59,7 @@ jobs:
           name: DVC pipeline run
           command: |
             pip install gcsfs==0.6.1 # Quick fix, https://github.com/dask/gcsfs/issues/393
-            dvc pull
+            dvc pull || echo 1 # Force DVC pull to succeed, missing files will be recreated, during `dvc repro`
             IMAGE_TAG=${CIRCLE_SHA1} dvc repro
       - run:
           name: Deploy model
@@ -120,6 +120,8 @@ workflows:
       - build-docker:
           name: prediction-server-build-docker
           edge_command: "vertex build-docker"
+          requires:
+            - model-pipeline-python-tests
 #          filters:
 #            branches:
 #              only:
