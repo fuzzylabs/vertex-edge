@@ -147,8 +147,8 @@ We recommend forking this repository at this point. You'll be changing configura
 * Python 3
 * [pyenv](https://github.com/pyenv/pyen)
 * [gcloud command line tool](https://cloud.google.com/sdk/docs/install)
-* helm
-* kubectl
+* helm - only needed if you're running the installation outside of Docker
+* kubectl - only needed if you're running the installation outside of Docker
 
 ## Setup Python environment
 
@@ -213,6 +213,20 @@ This will ask you a series of questions and then it will overwrite `edge.yaml` w
 ## Install on GCP
 
 If you're happy with the configuration, you're now ready to install all the things:
+
+The easiest way to do this is using Docker. First, build the image:
+
+```
+docker build -t edge
+```
+
+Then run
+
+```
+./edge_docker.sh install
+```
+
+Alternatively, if you don't want to run it in Docker, simply use
 
 ```
 ./edge.py install
