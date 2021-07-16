@@ -161,7 +161,7 @@ First, to manage Python, we'll use [PyEnv](https://github.com/pyenv/pyenv). Foll
 The Python version for this project is kept in [.python-version](.python-version). We can install and activate this version of Python by running:
 
 ```
-pyenv local
+pyenv install
 ```
 
 Now if you run `python --version` it will match what's in [.python-version](.python-version).
