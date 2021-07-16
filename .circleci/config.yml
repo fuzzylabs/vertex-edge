@@ -17,7 +17,10 @@ commands:
       - run: |
           echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
           gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
-
+  pin_pip_version:
+    steps:
+      - run: |
+          pip install pip==20.2.3
 jobs:
   python-test:
     parameters:
@@ -30,10 +33,7 @@ jobs:
     steps:
       - checkout:
           path: ~/project
-      - run:
-          name: Update pip
-          command: |
-            pip install --upgrade pip
+      - pin_pip_version
       - python/install-packages:
           pkg-manager: pip
       - run:
@@ -51,10 +51,7 @@ jobs:
     steps:
       - checkout:
           path: ~/project
-      - run:
-          name: Update pip
-          command: |
-            pip install --upgrade pip
+      - pin_pip_version
       - python/install-packages:
           pip-dependency-file: ~/project/requirements.txt
           pkg-manager: pip
@@ -82,10 +79,7 @@ jobs:
     steps:
       - checkout:
           path: ~/project
-      - run:
-          name: Update pip
-          command: |
-            pip install --upgrade pip
+      - pin_pip_version
       - python/install-packages:
           pkg-manager: pip
       - setup_remote_docker
@@ -106,10 +100,7 @@ jobs:
     steps:
       - checkout:
           path: ~/project
-      - run:
-          name: Update pip
-          command: |
-            pip install --upgrade pip
+      - pin_pip_version
       - python/install-packages:
           pkg-manager: pip
       - gcp-cli/install
