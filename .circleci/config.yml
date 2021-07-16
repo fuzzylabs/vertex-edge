@@ -55,15 +55,12 @@ jobs:
           pip-dependency-file: ~/project/requirements.txt
           pkg-manager: pip
       - dvc_google_auth
-      - gcp-cli/install
-      - gcp-cli/initialize
-      - google_auth
       - run:
           name: DVC pipeline run
           command: |
             pip install gcsfs==0.6.1 # Quick fix, https://github.com/dask/gcsfs/issues/393
             dvc pull || echo 1 # Force DVC pull to succeed, missing files will be recreated, during `dvc repro`
-            IMAGE_TAG=${CIRCLE_SHA1} dvc repro
+            GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json IMAGE_TAG=${CIRCLE_SHA1} dvc repro
       - run:
           name: Deploy model
           no_output_timeout: 30m
