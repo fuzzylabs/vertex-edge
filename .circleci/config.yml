@@ -30,6 +30,10 @@ jobs:
     steps:
       - checkout:
           path: ~/project
+      - run:
+          name: Update pip
+          command: |
+            pip install --upgrade pip
       - python/install-packages:
           pkg-manager: pip
       - run:
@@ -47,6 +51,10 @@ jobs:
     steps:
       - checkout:
           path: ~/project
+      - run:
+          name: Update pip
+          command: |
+            pip install --upgrade pip
       - python/install-packages:
           pip-dependency-file: ~/project/requirements.txt
           pkg-manager: pip
@@ -74,6 +82,10 @@ jobs:
     steps:
       - checkout:
           path: ~/project
+      - run:
+          name: Update pip
+          command: |
+            pip install --upgrade pip
       - python/install-packages:
           pkg-manager: pip
       - setup_remote_docker
@@ -94,6 +106,10 @@ jobs:
     steps:
       - checkout:
           path: ~/project
+      - run:
+          name: Update pip
+          command: |
+            pip install --upgrade pip
       - python/install-packages:
           pkg-manager: pip
       - gcp-cli/install
