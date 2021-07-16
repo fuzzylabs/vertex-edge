@@ -4,6 +4,12 @@
 
 This repository showcases _edge_, a tool for deploying models to [Vertex](https://cloud.google.com/vertex-ai/docs/start) on [Google Cloud Platform](https://cloud.google.com). We've also provided a reference example that shows how to train and deploy a simple model to GCP, and we show how to get up-and-running with everything you need to do MLOps _right_ (in our opinion).
 
+You can use this repo as a template for your projects. To get started, **fork this repo** and follow the instructions in this README to configure the tools for your GCP enviroment. By the end, you'll have an MLOps-ready environment with a simple model trained and deployed.
+
+## Feedback
+
+This is a new project and we're keen to get feedback from the community that will help us to improve it. Please do **raise and discuss issues**, send us pull requests, and don't forget to **~~like and subscribe~~** star and fork.
+
 ## Motivation
 
 With this project we set out to address the following questions:
