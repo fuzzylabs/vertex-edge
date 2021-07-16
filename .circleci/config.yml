@@ -17,7 +17,10 @@ commands:
       - run: |
           echo $GCLOUD_SERVICE_KEY > ${HOME}/gcloud-service-key.json
           gcloud auth activate-service-account --key-file=${HOME}/gcloud-service-key.json
-
+  pin_pip_version:
+    steps:
+      - run: |
+          pip install pip==20.2.3
 jobs:
   python-test:
     parameters:
@@ -43,10 +46,11 @@ jobs:
     executor:
       name: python/default
       tag: 3.8.0
-    working_directory: ~/project/pipelines/<< parameters.pipeline_name >>
+    working_directory: ~/project/models/<< parameters.pipeline_name >>
     steps:
       - checkout:
           path: ~/project
+      - pin_pip_version
       - python/install-packages:
           pip-dependency-file: ~/project/requirements.txt
           pkg-manager: pip
@@ -55,8 +59,8 @@ jobs:
           name: DVC pipeline run
           command: |
             pip install gcsfs==0.6.1 # Quick fix, https://github.com/dask/gcsfs/issues/393
-            dvc pull
-            IMAGE_TAG=${CIRCLE_SHA1} dvc repro
+            dvc pull || echo 1 # Force DVC pull to succeed, missing files will be recreated, during `dvc repro`
+            GOOGLE_APPLICATION_CREDENTIALS=${HOME}/gcloud-service-key.json IMAGE_TAG=${CIRCLE_SHA1} dvc repro
       - run:
           name: Deploy model
           no_output_timeout: 30m
@@ -74,6 +78,7 @@ jobs:
     steps:
       - checkout:
           path: ~/project
+      - pin_pip_version
       - python/install-packages:
           pkg-manager: pip
       - setup_remote_docker
@@ -94,6 +99,7 @@ jobs:
     steps:
       - checkout:
           path: ~/project
+      - pin_pip_version
       - python/install-packages:
           pkg-manager: pip
       - gcp-cli/install
@@ -114,6 +120,8 @@ workflows:
       - build-docker:
           name: prediction-server-build-docker
           edge_command: "vertex build-docker"
+          requires:
+            - model-pipeline-python-tests
           filters:
             branches:
               only:
