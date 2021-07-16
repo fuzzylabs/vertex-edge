@@ -46,7 +46,7 @@ jobs:
     executor:
       name: python/default
       tag: 3.8.0
-    working_directory: ~/project/pipelines/<< parameters.pipeline_name >>
+    working_directory: ~/project/pipelines/models/<< parameters.pipeline_name >>
     steps:
       - checkout:
           path: ~/project
