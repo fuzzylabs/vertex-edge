@@ -1,0 +1,8 @@
+starlette
+google-cloud-aiplatform
+jinja2
+uvicorn
+python-multipart
+pytest
+Pillow
+numpy

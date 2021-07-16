@@ -1,0 +1,27 @@
+schema: '2.0'
+stages:
+  prepare-mnist:
+    cmd: python3 prepare-mnist.py
+    deps:
+    - path: ../../data/fashion-mnist/t10k-images-idx3-ubyte.gz
+      md5: bef4ecab320f06d8554ea6380940ec79
+      size: 4422102
+    - path: ../../data/fashion-mnist/t10k-labels-idx1-ubyte.gz
+      md5: bb300cfdad3c16e7a12a480ee83cd310
+      size: 5148
+    - path: ../../data/fashion-mnist/train-images-idx3-ubyte.gz
+      md5: 8d4fb7e6c68d591d4c3dfef9ec88bf0d
+      size: 26421880
+    - path: ../../data/fashion-mnist/train-labels-idx1-ubyte.gz
+      md5: 25c81989df183df01b3e8a0aad5dffbe
+      size: 29515
+    - path: prepare-mnist.py
+      md5: ee5b9b95810856888c001fd05d587785
+      size: 423
+    outs:
+    - path: ../../data/fashion-mnist/test.pickle
+      md5: e86737aa7d8d8f5d588f91f0ed882e1f
+      size: 15732309
+    - path: ../../data/fashion-mnist/train.pickle
+      md5: 1c7f87c1445bd183785e8b20c3d79369
+      size: 94393209

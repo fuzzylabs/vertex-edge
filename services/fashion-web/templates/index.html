@@ -1,0 +1,22 @@
+<html>
+<head>
+    <script>
+        async function sendFile() {
+                    document.getElementById("result").textContent = ""
+            let formData = new FormData();
+            formData.append("img", fileupload.files[0]);
+            let res = await fetch("/infer", {
+                method: "POST",
+                body: formData
+            })
+            let _class = (await res.json())["class"]
+            document.getElementById("result").textContent = "Predicted class: " + _class
+        }
+    </script>
+</head>
+<body>
+    <input id="fileupload" type="file" name="fileupload" />
+    <button onclick="sendFile()">Send</button>
+    <p id="result"></p>
+</body>
+</html>

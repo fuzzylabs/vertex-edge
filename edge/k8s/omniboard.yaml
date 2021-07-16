@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: omniboard-deployment
+  labels:
+    app: omniboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: omniboard
+  template:
+    metadata:
+      labels:
+        app: omniboard
+    spec:
+      containers:
+      - name: nginx
+        image: vivekratnavel/omniboard
+        env:
+          - name: MONGO_URI
+            valueFrom:
+              secretKeyRef:
+                name: mongodb-connection
+                key: internal
+        ports:
+        - containerPort: 9000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: omniboard-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: omniboard
+  ports:
+  - protocol: TCP
+    port: 9000
+    targetPort: 9000
