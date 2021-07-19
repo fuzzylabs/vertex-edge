@@ -21,7 +21,7 @@ If you are testing this out, whether in production or not, we're really keen to 
 
 ### Reporting bugs
 
-Sadly, bugs happen; we're sorry! Before reporting a bug, please check the [open issues](fuzzylabs/vertex-edge/issues) to see if somebody has submitted the same bug before. If so, feel free to add further detail to the existing issue.
+Sadly, bugs happen; we're sorry! Before reporting a bug, please check the [open issues](/fuzzylabs/vertex-edge/issues) to see if somebody has submitted the same bug before. If so, feel free to add further detail to the existing issue.
 
 If your bug hasn't been raised before then [go ahead and raise it](fuzzylabs/vertex-edge/issues/new?assignees=&labels=bug&template=bug_report.md&title=) using our bug report template. Please provide as much information as possible to help us to reproduce the bug.
 
@@ -34,7 +34,7 @@ Enhancements and feature requests are very much welcome. We hope to learn from r
 
 ### Pull requests
 
-<a name="styleguide"></a>
+<a name="styleguides"></a>
 ## Style guides
 
 ### Git commit messages
