@@ -58,7 +58,7 @@ Please include a description in the pull request explaining what has been change
 ### Python code
 
 * Above all, write clean, understandable code.
-* Use [PyLint](https://pypi.org/project/pylint) to help ensure code is consistent.
+* Use [black](https://github.com/psf/black) and [PyLint](https://pypi.org/project/pylint) to help ensure code is consistent.
 
 ### Documentation
 

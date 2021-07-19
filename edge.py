@@ -20,7 +20,7 @@ import warnings
 
 warnings.filterwarnings(
     "ignore",
-    "Your application has authenticated using end user credentials from Google Cloud SDK without a quota project."
+    "Your application has authenticated using end user credentials from Google Cloud SDK without a quota project.",
 )
 
 config = None
@@ -66,10 +66,7 @@ def create_config(path: str) -> EdgeConfig:
     print("Configuring GCP")
     project_id = input("Google Cloud Project ID: ").strip()
     region = get_valid_gcp_region(project_id)
-    google_cloud_project = GCProjectConfig(
-        project_id=project_id,
-        region=region
-    )
+    google_cloud_project = GCProjectConfig(project_id=project_id, region=region)
 
     print()
     print("Configuring Vertex AI")
@@ -77,8 +74,7 @@ def create_config(path: str) -> EdgeConfig:
     vertex = VertexConfig(
         model_name=model_name,
         prediction_server_image=input_with_default(
-            f"Vertex AI prediction server image [{model_name}-prediction]: ",
-            f"{model_name}-prediction"
+            f"Vertex AI prediction server image [{model_name}-prediction]: ", f"{model_name}-prediction"
         ),
     )
 
@@ -87,7 +83,7 @@ def create_config(path: str) -> EdgeConfig:
     storage_bucket = StorageBucketConfig(
         bucket_name=input_with_default(f"Storage bucket name [{vertex.model_name}-model]: ", f"{model_name}-model"),
         dvc_store_directory=input_with_default("DVC store directory within the bucket [dvcstore]: ", "dvcstore"),
-        vertex_jobs_directory=input_with_default("Vertex AI jobs directory within the bucket [vertex]: ", "vertex")
+        vertex_jobs_directory=input_with_default("Vertex AI jobs directory within the bucket [vertex]: ", "vertex"),
     )
 
     print()
@@ -96,7 +92,7 @@ def create_config(path: str) -> EdgeConfig:
         gke_cluster_name=input_with_default("Sacred GKE cluster name [sacred]: ", "sacred"),
         mongodb_connection_string_secret=input_with_default(
             "MongoDB connection string secret name [sacred-mongodb-connection-string]: ",
-            "sacred-mongodb-connection-string"
+            "sacred-mongodb-connection-string",
         ),
     )
 
@@ -105,19 +101,12 @@ def create_config(path: str) -> EdgeConfig:
     web_app = WebAppConfig(
         webapp_server_image=input_with_default(f"Web app server image [{model_name}-webapp]: ", f"{model_name}-webapp"),
         cloud_run_service_name=input_with_default(
-            f"Cloud run service name [{model_name}-webapp]: ",
-            f"{model_name}-webapp"
-        )
+            f"Cloud run service name [{model_name}-webapp]: ", f"{model_name}-webapp"
+        ),
     )
 
     print()
-    _config = EdgeConfig(
-        google_cloud_project,
-        storage_bucket,
-        sacred,
-        vertex,
-        web_app
-    )
+    _config = EdgeConfig(google_cloud_project, storage_bucket, sacred, vertex, web_app)
     print("Configuration")
     print(to_yaml(_config))
 
@@ -154,10 +143,7 @@ def setup_edge(_config: EdgeConfig, lock_later: bool):
 
     storage_bucket_output = setup_storage(_config)
     if lock_later:
-        EdgeState.lock(
-            config.google_cloud_project.project_id,
-            config.storage_bucket.bucket_name
-        )
+        EdgeState.lock(config.google_cloud_project.project_id, config.storage_bucket.bucket_name)
     print()
 
     setup_dvc(_config, storage_bucket_output)
@@ -189,8 +175,7 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
 
     if _state.vertex_endpoint_state is not None:
         if input_yn(
-                f"Do you want to destroy Vertex AI endpoint: {_state.vertex_endpoint_state.endpoint_resource_name}",
-                "n"
+            f"Do you want to destroy Vertex AI endpoint: {_state.vertex_endpoint_state.endpoint_resource_name}", "n"
         ):
             tear_down_endpoint(_config, _state)
             _state.vertex_endpoint_state = None
@@ -200,9 +185,9 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
 
     if _state.sacred_state is not None:
         if input_yn(
-                f"Do you want to destroy experiment tracker Kubernetes cluster (MongoDB+Omniboard): "
-                f"{_config.sacred.gke_cluster_name}",
-                "n"
+            f"Do you want to destroy experiment tracker Kubernetes cluster (MongoDB+Omniboard): "
+            f"{_config.sacred.gke_cluster_name}",
+            "n",
         ):
             tear_down_sacred(_config, _state)
             _state.sacred_state = None
@@ -231,23 +216,16 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
         print("Google Storage bucket is still present, so the state is kept")
         _state.save(_config)
         print(to_yaml(state))
-        EdgeState.unlock(
-            _config.google_cloud_project.project_id,
-            _config.storage_bucket.bucket_name
-        )
+        EdgeState.unlock(_config.google_cloud_project.project_id, _config.storage_bucket.bucket_name)
     exit(0)
 
 
 def build_docker(docker_path, image_name, tag="latest"):
-    os.system(
-        f"docker build -t {image_name}:{tag} {docker_path}"
-    )
+    os.system(f"docker build -t {image_name}:{tag} {docker_path}")
 
 
 def push_docker(image_name, tag="latest"):
-    os.system(
-        f"docker push {image_name}:{tag}"
-    )
+    os.system(f"docker push {image_name}:{tag}")
 
 
 def deploy_cloud_run(_config: EdgeConfig, _state: EdgeState, tag: str):
@@ -258,7 +236,7 @@ def deploy_cloud_run(_config: EdgeConfig, _state: EdgeState, tag: str):
         --platform managed --allow-unauthenticated \
         --project {_config.google_cloud_project.project_id} --region {_config.google_cloud_project.region}",
         shell=True,
-        env=os.environ.copy()
+        env=os.environ.copy(),
     )
 
 
@@ -268,17 +246,19 @@ def remove_cloud_run(_config: EdgeConfig):
         --platform managed \
         --project {_config.google_cloud_project.project_id} --region {_config.google_cloud_project.region}",
         shell=True,
-        env=os.environ.copy()
+        env=os.environ.copy(),
     )
 
 
 def is_cloud_run_deployed(_config: EdgeConfig) -> bool:
-    services = json.loads(subprocess.check_output(
-        f"gcloud run services list --platform managed --format json \
+    services = json.loads(
+        subprocess.check_output(
+            f"gcloud run services list --platform managed --format json \
         --project {_config.google_cloud_project.project_id} --region {_config.google_cloud_project.region}",
-        shell=True,
-        env=os.environ.copy()
-    ).decode("utf-8"))
+            shell=True,
+            env=os.environ.copy(),
+        ).decode("utf-8")
+    )
     for service in services:
         if service["metadata"]["name"] == _config.web_app.cloud_run_service_name:
             return True
@@ -289,10 +269,7 @@ def vertex_deploy_from_state(state: EdgeState):
     with open("models/fashion/vertex_model.json") as f:
         model_dict = json.load(f)
 
-    vertex_deploy(
-        state.vertex_endpoint_state.endpoint_resource_name,
-        model_dict["model_name"]
-    )
+    vertex_deploy(state.vertex_endpoint_state.endpoint_resource_name, model_dict["model_name"])
 
 
 def get_google_application_credentials():
@@ -319,17 +296,11 @@ def run_docker_service(endpoint_id: str, image_name: str, tag: str = "latest"):
 
 
 def safe_exit(_config: EdgeConfig, _state: Optional[EdgeState]):
-    EdgeState.unlock(
-        config.google_cloud_project.project_id,
-        config.storage_bucket.bucket_name
-    )
+    EdgeState.unlock(config.google_cloud_project.project_id, config.storage_bucket.bucket_name)
 
 
 def acquire_state(_config: EdgeConfig) -> (Optional[EdgeState], bool):
-    state_locked, lock_later = EdgeState.lock(
-        config.google_cloud_project.project_id,
-        config.storage_bucket.bucket_name
-    )
+    state_locked, lock_later = EdgeState.lock(config.google_cloud_project.project_id, config.storage_bucket.bucket_name)
     if not state_locked and not lock_later:
         print("Cannot lock state, exiting...")
         exit(1)
@@ -376,11 +347,7 @@ def webapp_handler(_config, _args):
         path = "services/fashion-web"
         image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
         build_docker(path, image_name, tag)
-        run_docker_service(
-            state.vertex_endpoint_state.endpoint_resource_name,
-            image_name,
-            tag
-        )
+        run_docker_service(state.vertex_endpoint_state.endpoint_resource_name, image_name, tag)
         exit(0)
     elif _args.action == "deploy":
         state, _ = acquire_state(_config)
@@ -392,22 +359,17 @@ def webapp_handler(_config, _args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Edge", formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument(
-        "-c", "--config",
-        type=str,
-        default="edge.yaml",
-        help="Path to the configuration file (default: edge.yaml)"
+        "-c", "--config", type=str, default="edge.yaml", help="Path to the configuration file (default: edge.yaml)"
     )
 
     subparsers = parser.add_subparsers(title="command", dest="command", required=True)
     config_parser = subparsers.add_parser("config", help="Run configuration wizard")
     install_parser = subparsers.add_parser(
-        "install",
-        help="Setup the project on Google Cloud, according to the configuration"
+        "install", help="Setup the project on Google Cloud, according to the configuration"
     )
     force_unlock_parser = subparsers.add_parser("force-unlock", help="Unlock state file explicitly")
     uninstall_parser = subparsers.add_parser(
-        "uninstall",
-        help="Tear down Google Cloud infrastructure associated with this project (WARNING: DESTRUCTIVE)"
+        "uninstall", help="Tear down Google Cloud infrastructure associated with this project (WARNING: DESTRUCTIVE)"
     )
     omniboard_parser = subparsers.add_parser("omniboard", help="Get Omniboard URL, if it is deployed")
 
@@ -415,8 +377,7 @@ if __name__ == "__main__":
     vertex_subparsers = vertex_parser.add_subparsers(title="action", dest="action", required=True)
     vertex_subparsers.add_parser("get-endpoint", help="Get Vertex AI endpoint resource name")
     vertex_subparsers.add_parser(
-        "build-docker",
-        help="Build Docker container for the prediction server and push it to Google Container Registry"
+        "build-docker", help="Build Docker container for the prediction server and push it to Google Container Registry"
     )
     vertex_subparsers.add_parser("deploy", help="Deploy the trained model to Vertex AI")
 
@@ -424,8 +385,7 @@ if __name__ == "__main__":
     webapp_subparsers = webapp_parser.add_subparsers(title="action", dest="action", required=True)
     webapp_subparsers.add_parser("run", help="Run the webapp locally in Docker")
     webapp_subparsers.add_parser(
-        "build-docker",
-        help="Build Docker container for the webapp and push it to Google Container Registry"
+        "build-docker", help="Build Docker container for the webapp and push it to Google Container Registry"
     )
     webapp_subparsers.add_parser("deploy", help="Deploy the webapp to Cloud Run")
 
@@ -441,10 +401,7 @@ if __name__ == "__main__":
         print("Configuration is found")
 
     if args.command == "force-unlock":
-        EdgeState.unlock(
-            config.google_cloud_project.project_id,
-            config.storage_bucket.bucket_name
-        )
+        EdgeState.unlock(config.google_cloud_project.project_id, config.storage_bucket.bucket_name)
         exit(0)
 
     # Commands with subactions

@@ -27,14 +27,9 @@ async def infer(request: Request):
     instances = data["instances"]
 
     predictions = model.predict(instances)
-    return JSONResponse({
-        "predictions": predictions.astype(int).tolist()
-    })
+    return JSONResponse({"predictions": predictions.astype(int).tolist()})
 
 
-routes = [
-    Route('/health', endpoint=health),
-    Route('/infer', endpoint=infer, methods=["POST"])
-]
+routes = [Route("/health", endpoint=health), Route("/infer", endpoint=infer, methods=["POST"])]
 
 app = Starlette(debug=True, routes=routes)

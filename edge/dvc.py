@@ -78,7 +78,9 @@ def dvc_add_remote(path: str):
                 print(f"{path} has already been added")
             else:
                 print(f"modifying existing storage to {path}")
-                subprocess.check_output(f"dvc remote modify storage url {path} && dvc remote default storage", shell=True)
+                subprocess.check_output(
+                    f"dvc remote modify storage url {path} && dvc remote default storage", shell=True
+                )
         else:
             subprocess.check_output(f"dvc remote add storage {path} && dvc remote default storage", shell=True)
     except subprocess.CalledProcessError as e:
@@ -99,8 +101,10 @@ def setup_dvc(_config: EdgeConfig, storage_state: StorageBucketState):
                 f"DVC remote storage does not match vertex:edge config: expected -- {storage_path}, "
                 f"got -- {get_dvc_storage_path()}"
             )
-            print("WARNING: To use the new Google Storage bucket it is advised to destroy DVC repository, "
-                  "and initialise it from scratch.")
+            print(
+                "WARNING: To use the new Google Storage bucket it is advised to destroy DVC repository, "
+                "and initialise it from scratch."
+            )
             choice = None
             while choice not in ["y", "n"]:
                 choice = input("Do you want to destroy DVC and initialise it from scratch (y/n)? [n]: ").strip().lower()

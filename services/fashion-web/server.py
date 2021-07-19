@@ -9,7 +9,7 @@ import os
 
 endpoint_id = os.environ.get("ENDPOINT_ID")
 
-templates = Jinja2Templates(directory='templates')
+templates = Jinja2Templates(directory="templates")
 
 endpoint = Endpoint(endpoint_name=endpoint_id, project="fuzzylabs", location="europe-west4")
 
@@ -23,15 +23,12 @@ class_mapping = {
     6: "Shirt",
     7: "Sneaker",
     8: "Bag",
-    9: "Ankle boot"
+    9: "Ankle boot",
 }
 
 
 async def homepage(request):
-    return templates.TemplateResponse('index.html', {'request': request})
-
-
-
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 async def infer(request):
@@ -42,14 +39,9 @@ async def infer(request):
     print(type(img))
     prediction = endpoint.predict(instances=[img])
     print(prediction)
-    return JSONResponse({
-        "class": class_mapping[int(prediction.predictions[0])]
-    })
+    return JSONResponse({"class": class_mapping[int(prediction.predictions[0])]})
 
 
-routes = [
-    Route('/', endpoint=homepage),
-    Route('/infer', endpoint=infer, methods=["POST"])
-]
+routes = [Route("/", endpoint=homepage), Route("/infer", endpoint=infer, methods=["POST"])]
 
 app = Starlette(debug=True, routes=routes)

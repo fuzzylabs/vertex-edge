@@ -46,7 +46,7 @@ class WebAppConfig:
     cloud_run_service_name: str
 
 
-T = TypeVar('T', bound='EdgeState')
+T = TypeVar("T", bound="EdgeState")
 
 
 @deserialize
@@ -74,4 +74,3 @@ class EdgeConfig:
     def load_default(cls: Type[T]) -> T:
         config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../edge.yaml")
         return EdgeConfig.load(config_path)
-

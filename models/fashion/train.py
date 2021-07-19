@@ -36,9 +36,7 @@ def test_model(model, test_dataset):
     predicted_labels = model.predict(test_images)
     accuracy = accuracy_score(list(test_labels), predicted_labels)
     print("Accuracy:", accuracy)
-    return {
-        "accuracy": accuracy
-    }
+    return {"accuracy": accuracy}
 
 
 def load_datasets(train_set_path, test_set_path):
@@ -51,7 +49,7 @@ def load_datasets(train_set_path, test_set_path):
 
 
 def save_results(model, metrics, model_output_dir, metrics_output_path):
-    with wrap_open(os.path.join(model_output_dir, 'model.joblib'), 'wb') as f:
+    with wrap_open(os.path.join(model_output_dir, "model.joblib"), "wb") as f:
         dill.dump(model, f)
 
     with wrap_open(metrics_output_path, "w") as f:
@@ -63,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument("train_set_path")
     parser.add_argument("test_set_path")
     parser.add_argument("--n-neigbours", dest="n_neighbours", default=1, type=int)
-    parser.add_argument('--model-dir', dest='model_dir', default=os.getenv("AIP_MODEL_DIR"))
+    parser.add_argument("--model-dir", dest="model_dir", default=os.getenv("AIP_MODEL_DIR"))
     parser.add_argument("--model-metrics-path", dest="model_metrics_path", default="metrics.json")
 
     args = parser.parse_args()
