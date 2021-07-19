@@ -40,14 +40,14 @@ def config():
 
 @ex.automain
 def main(
-        _run,
-        params,
-        train_uri: str,
-        test_uri: str,
-        vertex_dir: str,
-        output_dir: str,
-        metrics_gs_link: str,
-        image_tag: str,
+    _run,
+    params,
+    train_uri: str,
+    test_uri: str,
+    vertex_dir: str,
+    output_dir: str,
+    metrics_gs_link: str,
+    image_tag: str,
 ):
     print("Running the job")
     # Run job
@@ -62,16 +62,19 @@ def main(
             "scipy==1.6.3",
         ],
         args=[
-            "--model-dir", output_dir,
-            "--model-metrics-path", metrics_gs_link,
-            "--n-neigbours", str(params["n_neighbours"]),
+            "--model-dir",
+            output_dir,
+            "--model-metrics-path",
+            metrics_gs_link,
+            "--n-neigbours",
+            str(params["n_neighbours"]),
             train_uri,
-            test_uri
+            test_uri,
         ],
         replica_count=1,
         project=_config.google_cloud_project.project_id,
         location=_config.google_cloud_project.region,
-        staging_bucket=vertex_dir
+        staging_bucket=vertex_dir,
     ).run()
 
     # Get results back
@@ -85,7 +88,9 @@ def main(
 
     # Create model on Vertex
     print("Creating model")
-    serving_container_image_uri = f"gcr.io/{_config.google_cloud_project.project_id}/{_config.vertex.prediction_server_image}:{image_tag}"
+    serving_container_image_uri = (
+        f"gcr.io/{_config.google_cloud_project.project_id}/{_config.vertex.prediction_server_image}:{image_tag}"
+    )
     model = Model.upload(
         display_name=_config.vertex.model_name,
         project=_config.google_cloud_project.project_id,
@@ -98,6 +103,9 @@ def main(
     )
 
     with open("vertex_model.json", "w") as f:
-        json.dump({
-            "model_name": model.resource_name,
-        }, f)
+        json.dump(
+            {
+                "model_name": model.resource_name,
+            },
+            f,
+        )

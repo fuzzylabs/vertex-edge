@@ -8,6 +8,6 @@ def test_prepare():
     :return:
     """
     img = prepare("test/test-t-shirt.jpeg")
-    assert len(img) == 28*28
+    assert len(img) == 28 * 28
     assert np.all(np.array(img) >= 0)
     assert np.all(np.array(img) <= 255)

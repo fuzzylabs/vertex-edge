@@ -22,7 +22,7 @@ class VertexEndpointState:
     endpoint_resource_name: str
 
 
-T = TypeVar('T', bound='EdgeState')
+T = TypeVar("T", bound="EdgeState")
 
 
 @deserialize

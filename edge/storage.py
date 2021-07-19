@@ -21,9 +21,11 @@ def get_bucket(project_id: str, bucket_name: str) -> Optional[storage.Bucket]:
     except NotFound:
         return None
     except Forbidden:
-        print(f"Error: the bucket [{bucket_name}] exists, but you do not have permissions to access it. Maybe it "
-              f"belongs to another project? For more information on bucket naming see: "
-              f"https://cloud.google.com/storage/docs/naming-buckets")
+        print(
+            f"Error: the bucket [{bucket_name}] exists, but you do not have permissions to access it. Maybe it "
+            f"belongs to another project? For more information on bucket naming see: "
+            f"https://cloud.google.com/storage/docs/naming-buckets"
+        )
         exit(1)
 
 
@@ -39,11 +41,7 @@ def get_bucket_uri(project_id: str, bucket_name: str) -> Optional[str]:
 def create_bucket(project_id: str, region: str, bucket_name: str) -> str:
     print(f"## Creating '{bucket_name}' bucket")
     client = storage.Client(project_id)
-    bucket = client.create_bucket(
-        bucket_or_name=bucket_name,
-        project=project_id,
-        location=region
-    )
+    bucket = client.create_bucket(bucket_or_name=bucket_name, project=project_id, location=region)
     print(f"Bucket created: gs://{bucket.name}/")
     return f"gs://{bucket.name}/"
 
@@ -85,6 +83,4 @@ def setup_storage(_config: EdgeConfig) -> StorageBucketState:
             _config.google_cloud_project.region,
             _config.storage_bucket.bucket_name,
         )
-    return StorageBucketState(
-        bucket_path
-    )
+    return StorageBucketState(bucket_path)

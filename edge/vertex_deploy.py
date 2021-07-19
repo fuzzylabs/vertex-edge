@@ -10,8 +10,4 @@ def vertex_deploy(endpoint_resource_name: str, model_name: str):
 
     print("Deploying model")
 
-    endpoint.deploy(
-        model=model,
-        traffic_percentage=100,
-        machine_type="n1-standard-2"
-    )
+    endpoint.deploy(model=model, traffic_percentage=100, machine_type="n1-standard-2")

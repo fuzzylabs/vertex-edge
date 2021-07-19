@@ -17,17 +17,13 @@ def create_cluster(project_id: str, region: str, cluster_name: str) -> Cluster:
     client = container_v1.ClusterManagerClient()
     try:
         cluster = client.get_cluster(
-            project_id=project_id,
-            name=f"projects/{project_id}/locations/{region}/clusters/{cluster_name}"
+            project_id=project_id, name=f"projects/{project_id}/locations/{region}/clusters/{cluster_name}"
         )
     except NotFound:
         print(f"Cluster '{cluster_name}' does not exist, creating...")
-        os.system(
-            f"gcloud container clusters create-auto {cluster_name} --project {project_id} --region {region}"
-        )
+        os.system(f"gcloud container clusters create-auto {cluster_name} --project {project_id} --region {region}")
         cluster = client.get_cluster(
-            project_id=project_id,
-            name=f"projects/{project_id}/locations/{region}/clusters/{cluster_name}"
+            project_id=project_id, name=f"projects/{project_id}/locations/{region}/clusters/{cluster_name}"
         )
         return cluster
     print(f"Cluster '{cluster_name}' exists")
@@ -38,7 +34,7 @@ def get_credentials(project_id: str, region: str, cluster_name: str):
     try:
         subprocess.check_output(
             f"gcloud container clusters get-credentials {cluster_name} --project {project_id} --region {region}",
-            shell=True
+            shell=True,
         )
     except subprocess.CalledProcessError as e:
         print(e.output)
@@ -49,8 +45,8 @@ def get_credentials(project_id: str, region: str, cluster_name: str):
 def get_mongodb_password():
     try:
         return subprocess.check_output(
-            "kubectl get secret --namespace default mongodb -o jsonpath=\"{.data.mongodb-password}\" | base64 --decode",
-            shell=True
+            'kubectl get secret --namespace default mongodb -o jsonpath="{.data.mongodb-password}" | base64 --decode',
+            shell=True,
         ).decode("utf-8")
     except subprocess.CalledProcessError as e:
         print(e.output)
@@ -61,8 +57,8 @@ def get_mongodb_password():
 def get_lb_ip(name):
     try:
         return subprocess.check_output(
-            f"kubectl get service --namespace default {name} -o jsonpath=\"{{.status.loadBalancer.ingress[0].ip}}\"",
-            shell=True
+            f'kubectl get service --namespace default {name} -o jsonpath="{{.status.loadBalancer.ingress[0].ip}}"',
+            shell=True,
         ).decode("utf-8")
     except subprocess.CalledProcessError as e:
         print(e.output)
@@ -80,13 +76,9 @@ def check_mongodb_installed() -> bool:
 
 def check_mongodb_lb_installed() -> bool:
     try:
-        subprocess.check_output(
-            "kubectl get service mongodb-lb -o json",
-            stderr=subprocess.STDOUT,
-            shell=True
-        )
+        subprocess.check_output("kubectl get service mongodb-lb -o json", stderr=subprocess.STDOUT, shell=True)
     except subprocess.CalledProcessError as e:
-        if e.output.decode("utf-8") == "Error from server (NotFound): services \"mongodb-lb\" not found\n":
+        if e.output.decode("utf-8") == 'Error from server (NotFound): services "mongodb-lb" not found\n':
             return False
         else:
             raise e
@@ -99,18 +91,24 @@ def install_mongodb() -> (str, str):
         if check_mongodb_installed():
             print("MongoDB is already installed")
         else:
-            subprocess.check_output('''
+            subprocess.check_output(
+                """
                 helm repo add bitnami https://charts.bitnami.com/bitnami
                 helm upgrade -i --wait mongodb bitnami/mongodb --set auth.username=sacred,auth.database=sacred
-            ''', shell=True)
+            """,
+                shell=True,
+            )
 
         print("## Exposing MongoDB")
         if check_mongodb_lb_installed():
             print("MongoDB is already exposed")
         else:
-            subprocess.check_output('''
+            subprocess.check_output(
+                """
                 kubectl expose deployment mongodb --name mongodb-lb --type LoadBalancer --port 60000 --target-port 27017
-            ''', shell=True)
+            """,
+                shell=True,
+            )
     except subprocess.CalledProcessError as e:
         print(e.output)
         print("Error occurred while installing MongoDB with helm chart")
@@ -129,9 +127,7 @@ def install_mongodb() -> (str, str):
 
     try:
         output = subprocess.check_output(
-            "kubectl delete secret mongodb-connection",
-            shell=True,
-            stderr=subprocess.STDOUT
+            "kubectl delete secret mongodb-connection", shell=True, stderr=subprocess.STDOUT
         )
     except subprocess.CalledProcessError as exc:
         if "NotFound" in exc.output.decode("utf-8"):
@@ -141,9 +137,7 @@ def install_mongodb() -> (str, str):
             print("Error while trying to delete mongodb-connection secret")
     else:
         print(output.decode("utf-8").strip())
-    os.system(
-        f"kubectl create secret generic mongodb-connection --from-literal=internal={internal_connection_string}"
-    )
+    os.system(f"kubectl create secret generic mongodb-connection --from-literal=internal={internal_connection_string}")
 
     print("MongoDB has been installed.")
     print("Internal connection string: ", f"mongodb://sacred:*****@mongodb/sacred")
@@ -177,9 +171,7 @@ def save_mongo_to_secretmanager(_config: EdgeConfig, connection_string: str):
     print("## Adding MongoDB connection string to Google Cloud Secret Manager")
     client = secretmanager_v1.SecretManagerServiceClient()
     try:
-        client.access_secret_version(
-            name=f"projects/{project_id}/secrets/{secret_id}/versions/latest"
-        )
+        client.access_secret_version(name=f"projects/{project_id}/secrets/{secret_id}/versions/latest")
     except NotFound:
         print(f"Creating '{secret_id}' secret")
         client.create_secret(
@@ -193,7 +185,7 @@ def save_mongo_to_secretmanager(_config: EdgeConfig, connection_string: str):
     client.add_secret_version(
         request={
             "parent": f"projects/{project_id}/secrets/{secret_id}",
-            "payload": {"data": connection_string.encode()}
+            "payload": {"data": connection_string.encode()},
         }
     )
 
@@ -205,9 +197,7 @@ def delete_mongo_to_secretmanager(_config: EdgeConfig):
     client = secretmanager_v1.SecretManagerServiceClient()
 
     try:
-        client.access_secret_version(
-            name=f"projects/{project_id}/secrets/{secret_id}/versions/latest"
-        )
+        client.access_secret_version(name=f"projects/{project_id}/secrets/{secret_id}/versions/latest")
         client.delete_secret(name=f"projects/{project_id}/secrets/{secret_id}")
     except NotFound:
         print("Secret does not exist")
@@ -222,12 +212,9 @@ def delete_cluster(_config: EdgeConfig):
     client = container_v1.ClusterManagerClient()
     try:
         client.get_cluster(
-            project_id=project_id,
-            name=f"projects/{project_id}/locations/{region}/clusters/{cluster_name}"
+            project_id=project_id, name=f"projects/{project_id}/locations/{region}/clusters/{cluster_name}"
         )
-        os.system(
-            f"gcloud container clusters delete {cluster_name} --project {project_id} --region {region}"
-        )
+        os.system(f"gcloud container clusters delete {cluster_name} --project {project_id} --region {region}")
     except NotFound:
         print("Cluster does not exist")
 
@@ -236,15 +223,11 @@ def setup_sacred(_config: EdgeConfig):
     print("# Setting up MongoDB for experiment tracking (Sacred and Omniboard)")
 
     create_cluster(
-        _config.google_cloud_project.project_id,
-        _config.google_cloud_project.region,
-        _config.sacred.gke_cluster_name
+        _config.google_cloud_project.project_id, _config.google_cloud_project.region, _config.sacred.gke_cluster_name
     )
 
     get_credentials(
-        _config.google_cloud_project.project_id,
-        _config.google_cloud_project.region,
-        _config.sacred.gke_cluster_name
+        _config.google_cloud_project.project_id, _config.google_cloud_project.region, _config.sacred.gke_cluster_name
     )
 
     internal_mongo_string, external_mongo_string = install_mongodb()
@@ -253,9 +236,7 @@ def setup_sacred(_config: EdgeConfig):
 
     external_omniboard_string = install_omniboard()
 
-    return SacredState(
-        external_omniboard_string=external_omniboard_string
-    )
+    return SacredState(external_omniboard_string=external_omniboard_string)
 
 
 def tear_down_sacred(_config: EdgeConfig, _state: EdgeState):
@@ -267,9 +248,7 @@ def tear_down_sacred(_config: EdgeConfig, _state: EdgeState):
 
 def get_omniboard(_config: EdgeConfig) -> str:
     get_credentials(
-        _config.google_cloud_project.project_id,
-        _config.google_cloud_project.region,
-        _config.sacred.gke_cluster_name
+        _config.google_cloud_project.project_id, _config.google_cloud_project.region, _config.sacred.gke_cluster_name
     )
 
     return f"http://{get_lb_ip('omniboard-lb')}:9000"
@@ -283,5 +262,5 @@ def get_mongo_observer(config: EdgeConfig) -> MongoObserver:
     secret_name = f"projects/{project_id}/secrets/{secret_id}/versions/latest"
     response = client.access_secret_version(name=secret_name)
 
-    mongo_connection_string = response.payload.data.decode('UTF-8')
+    mongo_connection_string = response.payload.data.decode("UTF-8")
     return MongoObserver(mongo_connection_string)
