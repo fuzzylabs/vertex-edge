@@ -28,7 +28,7 @@ jobs:
         type: string
     executor:
       name: python/default
-      tag: 3.8.0
+      tag: 3.9.1
     working_directory: ~/project/<< parameters.path >>
     steps:
       - checkout:
@@ -45,7 +45,7 @@ jobs:
         type: string
     executor:
       name: python/default
-      tag: 3.8.0
+      tag: 3.9.1
     working_directory: ~/project/models/<< parameters.pipeline_name >>
     steps:
       - checkout:
@@ -70,7 +70,7 @@ jobs:
   build-docker:
     executor:
       name: python/default
-      tag: 3.8.0
+      tag: 3.9.1
     parameters:
       edge_command:
         type: string
@@ -94,7 +94,7 @@ jobs:
   cloud-run-deploy:
     executor:
       name: python/default
-      tag: 3.8.0
+      tag: 3.9.1
     working_directory: ~/project/
     steps:
       - checkout:
