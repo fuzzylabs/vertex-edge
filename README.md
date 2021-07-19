@@ -160,21 +160,37 @@ We recommend forking this repository at this point. You'll be changing configura
 
 To make collaboration go smoothly, we really want to make sure that every developer can reproduce the same development environment, which means everybody uses the same versions of Python, and the same Python dependencies.
 
-### PyEnv
+To manage Python, we'll use [PyEnv](https://github.com/pyenv/pyenv). Follow the instructions for your operating system; once installed, PyEnv will download and manage of Python versions for you.
 
-First, to manage Python, we'll use [PyEnv](https://github.com/pyenv/pyenv). Follow the instructions for your operating system; once installed, PyEnv will download and make available the appropriate version of Python for you.
+The Python version for this project is kept in [.python-version](.python-version). PyEnv uses this file to discover which version of Python it should be using.
 
-The Python version for this project is kept in [.python-version](.python-version). We can install and activate this version of Python by running:
+#### When setting up for the first time
+
+You should run
 
 ```
 pyenv install
 ```
 
-Now if you run `python --version` it will match what's in [.python-version](.python-version).
+Followed by
+
+```
+eval "$(pyenv init --path)"
+```
+
+After which, if you run `python --version`, it will match what's in [.python-version](.python-version).
 
 ### Python dependencies (venv + PIP)
 
 With the correct version of Python set up, we'll use [Python venv](https://docs.python.org/3/library/venv.html) to provide an isolated Python environment, and [PIP](https://pypi.org/project/pip) to install and manage Python dependencies.
+
+**First, please ensure you have the most recent version of PIP installed** by running
+
+```
+pip install --upgrade pip
+```
+
+Then setup the environment and install dependencies:
 
 ```
 python -m venv env/
