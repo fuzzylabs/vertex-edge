@@ -6,9 +6,11 @@ This repository showcases _edge_, a tool for deploying models to [Vertex](https:
 
 You can use this repo as a template for your projects. To get started, **fork this repo** and follow the instructions in this README to configure the tools for your GCP enviroment. By the end, you'll have an MLOps-ready environment with a simple model trained and deployed.
 
-## Feedback
+## Feedback and contributions
 
 This is a new project and we're keen to get feedback from the community that will help us to improve it. Please do **raise and discuss issues**, send us pull requests, and don't forget to **~~like and subscribe~~** star and fork.
+
+**If you want to contribute** then please check out our [contributions guide](CONTRIBUTING.md), and we'll look forward to contributions!
 
 ## Motivation
 
@@ -31,6 +33,10 @@ With this project we set out to address the following questions:
 * **[Installing on your GCP environment](#installing)**
 * **[Training your first model in GCP](#running)**
 * **[Setting up CI/CD with CircleCI](#circle)**
+
+More documentation
+
+* **[Contributing](CONTRIBUTING.md)**
 
 <a name="concepts"></a>
 # Concepts
