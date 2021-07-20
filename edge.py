@@ -16,7 +16,7 @@ from edge.storage import setup_storage, tear_down_storage
 from edge.dvc import setup_dvc
 from serde.yaml import to_yaml, from_yaml
 from edge.vertex_deploy import vertex_deploy
-from edge.gcloud import get_gcp_regions, get_gcloud_account, get_gcloud_region, get_gcloud_project
+from edge.gcloud import *
 from edge.tui import *
 import atexit
 import warnings
@@ -395,12 +395,33 @@ def run_init():
     if not questionary.confirm(f"Is this the correct region: {gcloud_region}", qmark=qmark).ask():
         print_failure_explanation("Run `gcloud config set compute/region $REGION` to set the correct region")
         sys.exit(1)
-    time.sleep(1)
-    print_substep_success(f"{gcloud_region} is available on Vertex AI")
+
+    print_substep_not_done(f"{gcloud_region} is available on Vertex AI")
+    if gcloud_region in get_gcp_regions(gcloud_project):
+        clear_last_line()
+        print_substep_success(f"{gcloud_region} is available on Vertex AI")
+    else:
+        clear_last_line()
+        print_substep_failure(f"{gcloud_region} is available on Vertex AI")
+        formatted_regions = "\n      ".join(get_gcp_regions(gcloud_project))
+        print_failure_explanation(f"Use one of the regions that is available on Vertex AI:\n      {formatted_regions}")
+        sys.exit(1)
+
     print_substep_not_done(f"Checking if billing is enabled for project '{gcloud_project}'")
-    time.sleep(3)
-    clear_last_line()
-    print_substep_success(f"Checking if billing is enabled for project '{gcloud_project}'")
+    try:
+        if is_billing_enabled(gcloud_project):
+            clear_last_line()
+            print_substep_success(f"Checking if billing is enabled for project '{gcloud_project}'")
+        else:
+            clear_last_line()
+            print_substep_failure(f"Checking if billing is enabled for project '{gcloud_project}'")
+            print_failure_explanation(f"Enable billing for {gcloud_project} in Google Cloud Console")
+            sys.exit(1)
+    except Exception as e:
+        clear_last_line()
+        print_substep_failure(f"Checking if billing is enabled for project '{gcloud_project}'")
+        print_failure_explanation(str(e))
+        sys.exit(1)
 
     print_step("Initialise state file")
 

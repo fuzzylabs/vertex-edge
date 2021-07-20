@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 from typing import List
@@ -34,3 +35,12 @@ def get_gcloud_project() -> str:
 
 def get_gcloud_region() -> str:
     return subprocess.check_output("gcloud config get-value compute/region", shell=True, stderr=subprocess.DEVNULL).decode("utf-8").strip()
+
+
+def is_billing_enabled(project: str) -> bool:
+    try:
+        response = json.loads(subprocess.check_output(f"gcloud alpha billing projects describe {project} --format json", shell=True, stderr=subprocess.DEVNULL))
+        return response["billingEnabled"]
+    except subprocess.CalledProcessError:
+        raise Exception(f"Unable to access billing for project {project}. Check project id and your permissions in "
+                        f"Google Cloud.")
