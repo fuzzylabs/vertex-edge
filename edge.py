@@ -3,7 +3,9 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 import textwrap
+import time
 from typing import Optional
 from edge.config import *
 from edge.state import EdgeState
@@ -15,8 +17,10 @@ from edge.dvc import setup_dvc
 from serde.yaml import to_yaml, from_yaml
 from edge.vertex_deploy import vertex_deploy
 from edge.gcloud import get_gcp_regions
+from edge.tui import *
 import atexit
 import warnings
+import questionary
 
 warnings.filterwarnings(
     "ignore",
@@ -175,7 +179,7 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
 
     if _state.vertex_endpoint_state is not None:
         if input_yn(
-            f"Do you want to destroy Vertex AI endpoint: {_state.vertex_endpoint_state.endpoint_resource_name}", "n"
+                f"Do you want to destroy Vertex AI endpoint: {_state.vertex_endpoint_state.endpoint_resource_name}", "n"
         ):
             tear_down_endpoint(_config, _state)
             _state.vertex_endpoint_state = None
@@ -185,9 +189,9 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
 
     if _state.sacred_state is not None:
         if input_yn(
-            f"Do you want to destroy experiment tracker Kubernetes cluster (MongoDB+Omniboard): "
-            f"{_config.sacred.gke_cluster_name}",
-            "n",
+                f"Do you want to destroy experiment tracker Kubernetes cluster (MongoDB+Omniboard): "
+                f"{_config.sacred.gke_cluster_name}",
+                "n",
         ):
             tear_down_sacred(_config, _state)
             _state.sacred_state = None
@@ -333,6 +337,83 @@ def vertex_handler(_config, _args):
         exit(0)
 
 
+def run_init():
+    print_heading("Initialising vertex:edge")
+
+    print_step("Checking local environment")
+
+    print_substep_not_done("Checking gcloud version")
+    time.sleep(1)
+    clear_last_line()
+    print_substep_success("Checking gcloud version")
+
+    print_substep_not_done("Checking kubectl version")
+    time.sleep(1)
+    clear_last_line()
+    print_substep_success("Checking kubectl version")
+
+    print_substep_not_done("Checking helm version")
+    time.sleep(1)
+    clear_last_line()
+    print_substep_failure("Checking helm version")
+    print_failure_explanation("Unable to locate Helm. Please visit https://blah for instructions.")
+
+    print_step("Checking GCP environment")
+    # **** are you authenticated?
+    print_substep_not_done("Authenticated with gcloud")
+    time.sleep(1)
+    clear_last_line()
+    print_substep_success("Authenticated with gcloud")
+
+    print_substep("Verifying GCloud configuration")
+    gcloud_account = "test@example.com"  # TODO
+    gcloud_project = "example_project"  # TODO
+    gcloud_region = "europe-west4"  # TODO
+    if not questionary.confirm(f"Is this the correct GCloud account: {gcloud_account}", qmark=qmark).ask():
+        print_failure_explanation("Run `gcloud auth login && gcloud auth application-default login` to authenticate "
+                                  "with the correct account")
+        sys.exit(1)
+    if not questionary.confirm(f"Is this the correct project id: {gcloud_project}", qmark=qmark).ask():
+        print_failure_explanation("Run `gcloud config set project $PROJECT_ID` to set the correct project id")
+        sys.exit(1)
+    if not questionary.confirm(f"Is this the correct region: {gcloud_region}", qmark=qmark).ask():
+        print_failure_explanation("Run `gcloud config set compute/region $REGION` to set the correct region")
+        sys.exit(1)
+    time.sleep(1)
+    print_substep_success(f"{gcloud_region} is available on Vertex AI")
+    print_substep_not_done(f"Checking if billing is enabled for project '{gcloud_project}'")
+    time.sleep(3)
+    clear_last_line()
+    print_substep_success(f"Checking if billing is enabled for project '{gcloud_project}'")
+
+    print_step("Initialise state file")
+
+    print_substep_not_done("Enable Storage API")
+    time.sleep(2)
+    clear_last_line()
+    print_substep_success("Enable Storage API")
+
+    storage_bucket_name = questionary.text("Enter Storage bucket name to use:", qmark=qmark).ask()
+    if storage_bucket_name is None or storage_bucket_name == "":
+        print_substep_failure("Storage bucket name is required")
+        sys.exit(1)
+
+    print_substep_not_done(f"Checking if bucket '{storage_bucket_name}' exists in project {gcloud_project}")
+    time.sleep(4)
+    clear_last_line()
+    print_substep(f"Bucket '{storage_bucket_name}' does not exist")
+
+    print_substep_not_done(f"Creating bucket '{storage_bucket_name}'")
+    time.sleep(2)
+    clear_last_line()
+    print_substep_success(f"Creating bucket '{storage_bucket_name}'")
+
+    print_substep_success("Save state file")
+
+    print_step("Save configuration")
+    print_substep_success("Configuration saved to edge.yaml")
+
+
 def webapp_handler(_config, _args):
     if _args.action == "build-docker":
         tag = os.environ.get("TAG") or "latest"
@@ -363,6 +444,8 @@ if __name__ == "__main__":
     )
 
     subparsers = parser.add_subparsers(title="command", dest="command", required=True)
+    init_parser = subparsers.add_parser("init")
+
     config_parser = subparsers.add_parser("config", help="Run configuration wizard")
     install_parser = subparsers.add_parser(
         "install", help="Setup the project on Google Cloud, according to the configuration"
@@ -390,6 +473,11 @@ if __name__ == "__main__":
     webapp_subparsers.add_parser("deploy", help="Deploy the webapp to Cloud Run")
 
     args = parser.parse_args()
+
+    # Init does not require config or state
+    if args.command == "init":
+        run_init()
+        sys.exit(0)
 
     # Load configuration, and state (if exist) and lock state
     print("Loading configuration...")
