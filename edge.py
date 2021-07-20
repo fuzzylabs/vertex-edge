@@ -16,7 +16,7 @@ from edge.storage import setup_storage, tear_down_storage
 from edge.dvc import setup_dvc
 from serde.yaml import to_yaml, from_yaml
 from edge.vertex_deploy import vertex_deploy
-from edge.gcloud import get_gcp_regions
+from edge.gcloud import get_gcp_regions, get_gcloud_account, get_gcloud_region, get_gcloud_project
 from edge.tui import *
 import atexit
 import warnings
@@ -343,17 +343,17 @@ def run_init():
     print_step("Checking local environment")
 
     print_substep_not_done("Checking gcloud version")
-    time.sleep(1)
+    # time.sleep(1)
     clear_last_line()
     print_substep_success("Checking gcloud version")
 
     print_substep_not_done("Checking kubectl version")
-    time.sleep(1)
+    # time.sleep(1)
     clear_last_line()
     print_substep_success("Checking kubectl version")
 
     print_substep_not_done("Checking helm version")
-    time.sleep(1)
+    # time.sleep(1)
     clear_last_line()
     print_substep_failure("Checking helm version")
     print_failure_explanation("Unable to locate Helm. Please visit https://blah for instructions.")
@@ -361,14 +361,30 @@ def run_init():
     print_step("Checking GCP environment")
     # **** are you authenticated?
     print_substep_not_done("Authenticated with gcloud")
-    time.sleep(1)
+    # time.sleep(1)
     clear_last_line()
     print_substep_success("Authenticated with gcloud")
 
     print_substep("Verifying GCloud configuration")
-    gcloud_account = "test@example.com"  # TODO
-    gcloud_project = "example_project"  # TODO
-    gcloud_region = "europe-west4"  # TODO
+    gcloud_account = get_gcloud_account()
+    if gcloud_account is None or gcloud_account == "":
+        print_failure_explanation("gcloud account is unset")
+        print_failure_explanation("Run `gcloud auth login && gcloud auth application-default login` to authenticate "
+                                  "with the correct account")
+        sys.exit(1)
+
+    gcloud_project = get_gcloud_project()
+    if gcloud_project is None or gcloud_project == "":
+        print_failure_explanation("gcloud project id is unset")
+        print_failure_explanation("Run `gcloud config set project $PROJECT_ID` to set the correct project id")
+        sys.exit(1)
+
+    gcloud_region = get_gcloud_region()
+    if gcloud_region is None or gcloud_region == "":
+        print_failure_explanation("gcloud region is unset")
+        print_failure_explanation("Run `gcloud config set compute/region $REGION` to set the correct region")
+        sys.exit(1)
+
     if not questionary.confirm(f"Is this the correct GCloud account: {gcloud_account}", qmark=qmark).ask():
         print_failure_explanation("Run `gcloud auth login && gcloud auth application-default login` to authenticate "
                                   "with the correct account")
