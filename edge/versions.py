@@ -27,6 +27,9 @@ class Version:
                     return True
         return False
 
+    def __str__(self):
+        return f"{self.major}.{self.minor}.{self.patch}"
+
 
 def command_exist(command) -> bool:
     try:
@@ -54,7 +57,7 @@ def get_gcloud_version() -> Version:
 def get_kubectl_version() -> Version:
     if not command_exist("kubectl"):
         raise EdgeException("Unable to locate kubectl. Please visit https://kubernetes.io/docs/tasks/tools/ for installation instructions.")
-    version_string = get_version("kubectl version --short -o json")
+    version_string = get_version("kubectl version --client=true --short -o json")
     return Version.from_string(json.loads(version_string)["clientVersion"]["gitVersion"])
 
 
