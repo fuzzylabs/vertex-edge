@@ -24,7 +24,8 @@ from edge.gcloud import (
 )
 from edge.tui import (
     print_substep, print_heading, print_step, print_substep_not_done, print_substep_success, print_substep_failure,
-    print_failure_explanation, clear_last_line, qmark, print_substep_warning, print_warning_explanation
+    print_failure_explanation, clear_last_line, qmark, print_substep_warning, print_warning_explanation, SubStepTUI,
+    TUIStatus, TUI, StepTUI
 )
 from edge.versions import get_kubectl_version, get_gcloud_version, get_helm_version, Version
 from edge.exception import EdgeException
@@ -386,265 +387,250 @@ def init_failed():
 
 
 def run_init():
-    print_heading("Initialising vertex:edge")
+    success_title = "Initialised successfully"
+    success_message = """
+What's next? We suggest you proceed with:
 
-    print_step("Checking your local environment", emoji="🖥️")
+  Commit the new vertex:edge configuration to git:
+    git add edge.yaml && git commit -m "Initialise vertex:edge"
 
-    print_substep_not_done("Checking gcloud version")
-    try:
-        gcloud_version = get_gcloud_version()
-        expected_gcloud_version_string = "2021.05.21"
-        expected_gcloud_version = Version.from_string(expected_gcloud_version_string)
-        if gcloud_version.is_at_least(expected_gcloud_version):
+  Configure an experiment tracker (optional):
+    ./edge.py experiment-tracker init [italic]
+
+  Configure data version control:
+    ./edge.py dvc init
+
+  Train and deploy a model (see X section of the README for more details):
+    ./edge.py vertex init
+    dvc repro ...
+    ./edge.py vertex deploy
+
+Happy herding! 🐏
+        """.strip()
+    failure_title = "Initialisation failed"
+    failure_message = "See the errors above. For technical details see error log. See README for more details."
+    with TUI(
+        "Initialising vertex:edge",
+        success_title,
+        success_message,
+        failure_title,
+        failure_message
+    ) as tui:
+        with StepTUI(message="Checking your local environment", emoji="🖥️") as step:
+            with SubStepTUI("Checking gcloud version") as sub_step:
+                gcloud_version = get_gcloud_version()
+                expected_gcloud_version_string = "2021.05.21"
+                expected_gcloud_version = Version.from_string(expected_gcloud_version_string)
+                if not gcloud_version.is_at_least(expected_gcloud_version):
+                    raise EdgeException(
+                        f"We found gcloud version {str(gcloud_version)}, "
+                        f"but we require at least {str(expected_gcloud_version)}. "
+                        "Update gcloud by running `gcloud components update`."
+                    )
+
+            with SubStepTUI("Checking kubectl version") as sub_step:
+                kubectl_version = get_kubectl_version()
+                expected_kubectl_version_string = "v1.19.0"
+                expected_kubectl_version = Version.from_string(expected_kubectl_version_string)
+                if not kubectl_version.is_at_least(expected_kubectl_version):
+                    raise EdgeException(
+                        f"We found gcloud version {str(kubectl_version)}, "
+                        f"but we require at least {str(expected_kubectl_version)}. "
+                        "Please visit https://kubernetes.io/docs/tasks/tools/ for installation instructions."
+                    )
+
+            with SubStepTUI("Checking helm version") as sub_step:
+                helm_version = get_helm_version()
+                expected_helm_version_string = "v3.5.2"
+                expected_helm_version = Version.from_string(expected_helm_version_string)
+                if not helm_version.is_at_least(expected_helm_version):
+                    raise EdgeException(
+                        f"We found gcloud version {str(helm_version)}, "
+                        f"but we require at least {str(expected_helm_version)}. "
+                        "Please visit https://helm.sh/docs/intro/install/ for installation instructions."
+                    )
+
+        print_step("Checking your GCP environment", emoji="☁️")
+        print_substep_not_done("️Checking if you have authenticated with gcloud")
+        _is_authenticated, _reason = is_authenticated()
+        if _is_authenticated:
             clear_last_line()
-            print_substep_success("Checking gcloud version")
+            print_substep_success("️Checking if you have authenticated with gcloud")
         else:
             clear_last_line()
-            print_substep_failure("Checking gcloud version")
+            print_substep_failure("️Checking if you have authenticated with gcloud")
+            print_failure_explanation(_reason)
+            init_failed()
+            sys.exit(1)
+
+        print_substep("Verifying GCloud configuration")
+        gcloud_account = get_gcloud_account()
+        if gcloud_account is None or gcloud_account == "":
+            print_failure_explanation("gcloud account is unset")
             print_failure_explanation(
-                f"We found gcloud version {str(gcloud_version)}, "
-                f"but we require at least {str(expected_gcloud_version)}. "
-                "Update gcloud by running `gcloud components update`."
+                "Run `gcloud auth login && gcloud auth application-default login` to authenticate "
+                "with the correct account"
             )
             init_failed()
             sys.exit(1)
-    except EdgeException as e:
-        clear_last_line()
-        print_substep_failure("Checking gcloud version")
-        print_failure_explanation(str(e))
-        init_failed()
-        sys.exit(1)
 
-    print_substep_not_done("Checking kubectl version")
-    try:
-        kubectl_version = get_kubectl_version()
-        expected_kubectl_version_string = "v1.19.0"
-        expected_kubectl_version = Version.from_string(expected_kubectl_version_string)
-        if kubectl_version.is_at_least(expected_kubectl_version):
-            clear_last_line()
-            print_substep_success("Checking kubectl version")
-        else:
-            clear_last_line()
-            print_substep_failure("Checking kubectl version")
+        gcloud_project = get_gcloud_project()
+        if gcloud_project is None or gcloud_project == "":
+            print_failure_explanation("gcloud project id is unset")
+            print_failure_explanation("Run `gcloud config set project $PROJECT_ID` to set the correct project id")
+            init_failed()
+            sys.exit(1)
+
+        gcloud_region = get_gcloud_region()
+        if gcloud_region is None or gcloud_region == "":
+            print_failure_explanation("gcloud region is unset")
+            print_failure_explanation("Run `gcloud config set compute/region $REGION` to set the correct region")
+            init_failed()
+            sys.exit(1)
+
+        if not questionary.confirm(f"Is this the correct GCloud account: {gcloud_account}", qmark=qmark).ask():
             print_failure_explanation(
-                f"We found gcloud version {str(kubectl_version)}, "
-                f"but we require at least {str(expected_kubectl_version)}. "
-                "Please visit https://kubernetes.io/docs/tasks/tools/ for installation instructions."
+                "Run `gcloud auth login && gcloud auth application-default login` to authenticate "
+                "with the correct account"
             )
             init_failed()
             sys.exit(1)
-    except EdgeException as e:
-        clear_last_line()
-        print_substep_failure("Checking kubectl version")
-        print_failure_explanation(str(e))
-        init_failed()
-        sys.exit(1)
-
-    print_substep_not_done("Checking helm version")
-    try:
-        helm_version = get_helm_version()
-        expected_helm_version_string = "v3.5.2"
-        expected_helm_version = Version.from_string(expected_helm_version_string)
-        if helm_version.is_at_least(expected_helm_version):
-            clear_last_line()
-            print_substep_success("Checking helm version")
-        else:
-            clear_last_line()
-            print_substep_failure("Checking helm version")
-            print_failure_explanation(
-                f"We found gcloud version {str(helm_version)}, "
-                f"but we require at least {str(expected_helm_version)}. "
-                "Please visit https://helm.sh/docs/intro/install/ for installation instructions."
-            )
+        if not questionary.confirm(f"Is this the correct project id: {gcloud_project}", qmark=qmark).ask():
+            print_failure_explanation("Run `gcloud config set project <project_id>` to set the correct project id")
+            init_failed()
             sys.exit(1)
-    except EdgeException as e:
-        clear_last_line()
-        print_substep_failure("Checking helm version")
-        print_failure_explanation(str(e))
-        init_failed()
-        sys.exit(1)
+        if not questionary.confirm(f"Is this the correct region: {gcloud_region}", qmark=qmark).ask():
+            print_failure_explanation("Run `gcloud config set compute/region <region>` to set the correct region")
+            init_failed()
+            sys.exit(1)
 
-    print_step("Checking your GCP environment", emoji="☁️")
-    print_substep_not_done("️Checking if you have authenticated with gcloud")
-    _is_authenticated, _reason = is_authenticated()
-    if _is_authenticated:
-        clear_last_line()
-        print_substep_success("️Checking if you have authenticated with gcloud")
-    else:
-        clear_last_line()
-        print_substep_failure("️Checking if you have authenticated with gcloud")
-        print_failure_explanation(_reason)
-        init_failed()
-        sys.exit(1)
-
-    print_substep("Verifying GCloud configuration")
-    gcloud_account = get_gcloud_account()
-    if gcloud_account is None or gcloud_account == "":
-        print_failure_explanation("gcloud account is unset")
-        print_failure_explanation(
-            "Run `gcloud auth login && gcloud auth application-default login` to authenticate "
-            "with the correct account"
-        )
-        init_failed()
-        sys.exit(1)
-
-    gcloud_project = get_gcloud_project()
-    if gcloud_project is None or gcloud_project == "":
-        print_failure_explanation("gcloud project id is unset")
-        print_failure_explanation("Run `gcloud config set project $PROJECT_ID` to set the correct project id")
-        init_failed()
-        sys.exit(1)
-
-    gcloud_region = get_gcloud_region()
-    if gcloud_region is None or gcloud_region == "":
-        print_failure_explanation("gcloud region is unset")
-        print_failure_explanation("Run `gcloud config set compute/region $REGION` to set the correct region")
-        init_failed()
-        sys.exit(1)
-
-    if not questionary.confirm(f"Is this the correct GCloud account: {gcloud_account}", qmark=qmark).ask():
-        print_failure_explanation(
-            "Run `gcloud auth login && gcloud auth application-default login` to authenticate "
-            "with the correct account"
-        )
-        init_failed()
-        sys.exit(1)
-    if not questionary.confirm(f"Is this the correct project id: {gcloud_project}", qmark=qmark).ask():
-        print_failure_explanation("Run `gcloud config set project <project_id>` to set the correct project id")
-        init_failed()
-        sys.exit(1)
-    if not questionary.confirm(f"Is this the correct region: {gcloud_region}", qmark=qmark).ask():
-        print_failure_explanation("Run `gcloud config set compute/region <region>` to set the correct region")
-        init_failed()
-        sys.exit(1)
-
-    print_substep_not_done(f"{gcloud_region} is available on Vertex AI")
-    if gcloud_region in get_gcp_regions(gcloud_project):
-        clear_last_line()
-        print_substep_success(f"{gcloud_region} is available on Vertex AI")
-    else:
-        clear_last_line()
-        print_substep_failure(f"{gcloud_region} is available on Vertex AI")
-        formatted_regions = "\n      ".join(get_gcp_regions(gcloud_project))
-        print_failure_explanation(
-            "Vertex AI only works in certain regions. "
-            "Please choose one of the following by running `gcloud config set compute/region <region>`:\n"
-            f"      {formatted_regions}"
-        )
-        init_failed()
-        sys.exit(1)
-
-    gcloud_config = GCProjectConfig(
-        project_id=gcloud_project,
-        region=gcloud_region,
-    )
-
-    print_substep_not_done(f"Checking if project '{gcloud_project}' exists")
-    try:
-        if project_exists(gcloud_project):
+        print_substep_not_done(f"{gcloud_region} is available on Vertex AI")
+        if gcloud_region in get_gcp_regions(gcloud_project):
             clear_last_line()
-            print_substep_success(f"Checking if project '{gcloud_project}' exists")
-    except EdgeException as e:
-        clear_last_line()
-        print_substep_failure(f"Checking if project '{gcloud_project}' exists")
-        print_failure_explanation(str(e))
-        init_failed()
-        sys.exit(1)
-
-    print_substep_not_done(f"Checking if billing is enabled for project '{gcloud_project}'")
-    try:
-        if is_billing_enabled(gcloud_project):
-            clear_last_line()
-            print_substep_success(f"Checking if billing is enabled for project '{gcloud_project}'")
+            print_substep_success(f"{gcloud_region} is available on Vertex AI")
         else:
             clear_last_line()
-            print_substep_failure(f"Checking if billing is enabled for project '{gcloud_project}'")
+            print_substep_failure(f"{gcloud_region} is available on Vertex AI")
+            formatted_regions = "\n      ".join(get_gcp_regions(gcloud_project))
             print_failure_explanation(
-                f"Billing is not enabled for project '{gcloud_project}'. "
-                f"Please enable billing for this project following these instructions "
-                f"https://cloud.google.com/billing/docs/how-to/modify-projectBilling is not enabled "
-                f"for project '{gcloud_project}'."
+                "Vertex AI only works in certain regions. "
+                "Please choose one of the following by running `gcloud config set compute/region <region>`:\n"
+                f"      {formatted_regions}"
             )
             init_failed()
             sys.exit(1)
-    except EdgeException as e:
-        clear_last_line()
-        print_substep_warning(f"Checking if billing is enabled for project '{gcloud_project}'")
-        print_warning_explanation(str(e))
 
-    print_step("Initialising Google Storage and vertex:edge state file", emoji="💾")
-
-    print_substep_not_done("Enabling Storage API")
-    try:
-        enable_service_api("container.googleapis.com", gcloud_project)
-        clear_last_line()
-        print_substep_success(f"Enabling Storage API")
-    except EdgeException as e:
-        clear_last_line()
-        print_substep_failure(f"Enabling Storage API")
-        print_failure_explanation(str(e))
-        init_failed()
-        sys.exit(1)
-
-    print_substep("Configuring Google Storage bucket")
-    storage_bucket_name = questionary.text(
-        "Now you need to choose a name for a storage bucket that will be used for data version control, "
-        "model assets and keeping track of the vertex:edge state\n      "
-        "NOTE: Storage bucket names must be unique and follow certain conventions. "
-        "Please see the following guidelines for more information https://cloud.google.com/storage/docs/naming-buckets."
-        "\n      Enter Storage bucket name to use: ",
-        qmark=qmark
-    ).ask()
-    if storage_bucket_name is None or storage_bucket_name == "":
-        print_substep_failure("Storage bucket name is required")
-        init_failed()
-        sys.exit(1)
-
-    storage_config = StorageBucketConfig(
-        bucket_name=storage_bucket_name,
-        dvc_store_directory="dvcstore",
-        vertex_jobs_directory="vertex",
-    )
-    storage_state = setup_storage(gcloud_project, gcloud_region, storage_bucket_name)
-
-    _state = EdgeState(
-        storage_bucket_state=storage_state
-    )
-
-    _config = EdgeConfig(
-        google_cloud_project=gcloud_config,
-        storage_bucket=storage_config,
-    )
-
-    skip_saving_state = False
-    print_substep_not_done("Checking if vertex:edge state file exists")
-    if EdgeState.exists(_config):
-        clear_last_line()
-        print_substep_warning(
-            "The state file already exists. "
-            "This means that vertex:edge has already been initialised using this storage bucket."
+        gcloud_config = GCProjectConfig(
+            project_id=gcloud_project,
+            region=gcloud_region,
         )
-        if not questionary.confirm(
-            f"Do you want to delete the state and start over (this action is destructive!)",
-            qmark=qmark,
-            default=False,
-        ).ask():
-            skip_saving_state = True
-    if skip_saving_state:
-        print_substep_warning("Saving state file skipped")
-    else:
-        print_substep_success("Saving state file")
-        _state.save(_config)
+
+        print_substep_not_done(f"Checking if project '{gcloud_project}' exists")
+        try:
+            if project_exists(gcloud_project):
+                clear_last_line()
+                print_substep_success(f"Checking if project '{gcloud_project}' exists")
+        except EdgeException as e:
+            clear_last_line()
+            print_substep_failure(f"Checking if project '{gcloud_project}' exists")
+            print_failure_explanation(str(e))
+            init_failed()
+            sys.exit(1)
+
+        print_substep_not_done(f"Checking if billing is enabled for project '{gcloud_project}'")
+        try:
+            if is_billing_enabled(gcloud_project):
+                clear_last_line()
+                print_substep_success(f"Checking if billing is enabled for project '{gcloud_project}'")
+            else:
+                clear_last_line()
+                print_substep_failure(f"Checking if billing is enabled for project '{gcloud_project}'")
+                print_failure_explanation(
+                    f"Billing is not enabled for project '{gcloud_project}'. "
+                    f"Please enable billing for this project following these instructions "
+                    f"https://cloud.google.com/billing/docs/how-to/modify-projectBilling is not enabled "
+                    f"for project '{gcloud_project}'."
+                )
+                init_failed()
+                sys.exit(1)
+        except EdgeException as e:
+            clear_last_line()
+            print_substep_warning(f"Checking if billing is enabled for project '{gcloud_project}'")
+            print_warning_explanation(str(e))
+
+        print_step("Initialising Google Storage and vertex:edge state file", emoji="💾")
+
+        print_substep_not_done("Enabling Storage API")
+        try:
+            enable_service_api("container.googleapis.com", gcloud_project)
+            clear_last_line()
+            print_substep_success(f"Enabling Storage API")
+        except EdgeException as e:
+            clear_last_line()
+            print_substep_failure(f"Enabling Storage API")
+            print_failure_explanation(str(e))
+            init_failed()
+            sys.exit(1)
+
+        print_substep("Configuring Google Storage bucket")
+        storage_bucket_name = questionary.text(
+            "Now you need to choose a name for a storage bucket that will be used for data version control, "
+            "model assets and keeping track of the vertex:edge state\n      "
+            "NOTE: Storage bucket names must be unique and follow certain conventions. "
+            "Please see the following guidelines for more information https://cloud.google.com/storage/docs/naming-buckets."
+            "\n      Enter Storage bucket name to use: ",
+            qmark=qmark
+        ).ask()
+        if storage_bucket_name is None or storage_bucket_name == "":
+            print_substep_failure("Storage bucket name is required")
+            init_failed()
+            sys.exit(1)
+
+        storage_config = StorageBucketConfig(
+            bucket_name=storage_bucket_name,
+            dvc_store_directory="dvcstore",
+            vertex_jobs_directory="vertex",
+        )
+        storage_state = setup_storage(gcloud_project, gcloud_region, storage_bucket_name)
+
+        _state = EdgeState(
+            storage_bucket_state=storage_state
+        )
+
+        _config = EdgeConfig(
+            google_cloud_project=gcloud_config,
+            storage_bucket=storage_config,
+        )
+
+        skip_saving_state = False
+        print_substep_not_done("Checking if vertex:edge state file exists")
+        if EdgeState.exists(_config):
+            clear_last_line()
+            print_substep_warning(
+                "The state file already exists. "
+                "This means that vertex:edge has already been initialised using this storage bucket."
+            )
+            if not questionary.confirm(
+                f"Do you want to delete the state and start over (this action is destructive!)",
+                qmark=qmark,
+                default=False,
+            ).ask():
+                skip_saving_state = True
+        if skip_saving_state:
+            print_substep_warning("Saving state file skipped")
+        else:
+            print_substep_success("Saving state file")
+            _state.save(_config)
+            clear_last_line()
+            print_substep_success("Saving state file")
+
+        print_step("Saving configuration", emoji="⚙️")
+        print_substep_not_done("Saving configuration to edge.yaml")
+        _config.save("./edge.yaml")
         clear_last_line()
-        print_substep_success("Saving state file")
+        print_substep_success("Saving configuration to edge.yaml")
 
-    print_step("Saving configuration", emoji="⚙️")
-    print_substep_not_done("Saving configuration to edge.yaml")
-    _config.save("./edge.yaml")
-    clear_last_line()
-    print_substep_success("Saving configuration to edge.yaml")
-
-    init_successful()
+        init_successful()
 
 
 def webapp_handler(_config, _args):
