@@ -62,7 +62,8 @@ def is_billing_enabled(project: str) -> bool:
         raise EdgeException(
             f"Unable to access billing information for project '{project}'. "
             f"Please verify that the project ID is valid and your user has permissions "
-            f"to access the billing information for this project."
+            f"to access the billing information for this project.",
+            fatal=False
         )
 
 

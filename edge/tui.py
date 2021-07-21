@@ -178,15 +178,17 @@ class SubStepTUI(object):
             if self.status == TUIStatus.PENDING:
                 self.update(status=TUIStatus.SUCCESSFUL)
         elif exc_type is EdgeException:
-            if self.status == TUIStatus.PENDING:
-                if exc_val.fatal:
-                    self.update(status=TUIStatus.FAILED)
-                    suppress = False
-                else:
-                    self.update(status=TUIStatus.WARNING)
-                self.add_explanation(str(exc_val))
+            if exc_val.fatal:
+                self.update(status=TUIStatus.FAILED)
+                suppress = False
+            else:
+                self.update(status=TUIStatus.WARNING)
+            self.add_explanation(str(exc_val))
+        else:
+            return False
 
         self._entered = False
+
         return suppress
 
     def print(self):
@@ -209,3 +211,6 @@ class SubStepTUI(object):
         self._dirty = True
         line = f"   - {text}"
         questionary.print(line, self.style[self.status])
+
+    def set_dirty(self):
+        self._dirty = True

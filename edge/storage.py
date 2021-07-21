@@ -8,7 +8,7 @@ from .config import EdgeConfig
 from .exception import EdgeException
 from .tui import (
     print_substep_not_done, print_substep_success, print_substep_failure, print_failure_explanation, print_substep,
-    clear_last_line
+    clear_last_line, SubStepTUI
 )
 
 
@@ -73,28 +73,17 @@ def tear_down_storage(_config: EdgeConfig, _state):
 
 
 def setup_storage(project_id: str, region: str, bucket_name: str) -> StorageBucketState:
-    print_substep_not_done(f"Checking if '{bucket_name}' exists")
-    try:
+    with SubStepTUI(f"Checking if '{bucket_name}' exists") as sub_step:
         bucket_path = get_bucket_uri(
             project_id,
             bucket_name,
         )
-    except EdgeException as e:
-        clear_last_line()
-        print_substep_failure(f"Checking if '{bucket_name}' exists")
-        print_failure_explanation(str(e))
-        sys.exit(1)
-    if bucket_path is not None:
-        clear_last_line()
-        print_substep_success(f"Checking if '{bucket_name}' exists")
-    else:
-        clear_last_line()
-        print_substep_not_done(f"'{bucket_name}' does not exist, creating it")
-        bucket_path = create_bucket(
-            project_id,
-            region,
-            bucket_name,
-        )
-        clear_last_line()
-        print_substep_success(f"Created '{bucket_name}' bucket")
-    return StorageBucketState(bucket_path)
+        if bucket_path is None:
+            clear_last_line()
+            sub_step.update(message=f"'{bucket_name}' does not exist, creating it")
+            bucket_path = create_bucket(
+                project_id,
+                region,
+                bucket_name,
+            )
+        return StorageBucketState(bucket_path)
