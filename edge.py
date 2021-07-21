@@ -351,7 +351,7 @@ def vertex_handler(_config, _args):
 def run_init():
     print_heading("Initialising vertex:edge")
 
-    print_step("Checking your local environment")
+    print_step("Checking your local environment", emoji="🖥️")
 
     print_substep_not_done("Checking gcloud version")
     try:
@@ -422,7 +422,7 @@ def run_init():
         print_failure_explanation(str(e))
         sys.exit(1)
 
-    print_step("Checking your GCP environment")
+    print_step("Checking your GCP environment", emoji="☁️")
     print_substep_not_done("️Checking if you have authenticated with gcloud")
     _is_authenticated, _reason = is_authenticated()
     if _is_authenticated:
@@ -520,7 +520,7 @@ def run_init():
         print_substep_warning(f"Checking if billing is enabled for project '{gcloud_project}'")
         print_warning_explanation(str(e))
 
-    print_step("Initialising Google Storage and vertex:edge state file")
+    print_step("Initialising Google Storage and vertex:edge state file", emoji="💾")
 
     print_substep_not_done("Enabling Storage API")
     try:
@@ -584,7 +584,7 @@ def run_init():
         clear_last_line()
         print_substep_success("Saving state file")
 
-    print_step("Saving configuration")
+    print_step("Saving configuration", emoji="⚙️")
     print_substep_not_done("Saving configuration to edge.yaml")
     _config.save("./edge.yaml")
     clear_last_line()
