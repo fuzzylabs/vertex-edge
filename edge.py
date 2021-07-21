@@ -18,7 +18,9 @@ from edge.endpoint import setup_endpoint, tear_down_endpoint
 from edge.storage import setup_storage, tear_down_storage
 from edge.dvc import setup_dvc
 from edge.vertex_deploy import vertex_deploy
-from edge.gcloud import get_gcp_regions, get_gcloud_region, get_gcloud_project, get_gcloud_account, is_billing_enabled
+from edge.gcloud import (
+    get_gcp_regions, get_gcloud_region, get_gcloud_project, get_gcloud_account, is_billing_enabled, is_authenticated
+)
 from edge.tui import (
     print_substep, print_heading, print_step, print_substep_not_done, print_substep_success, print_substep_failure,
     print_failure_explanation, clear_last_line, qmark
@@ -417,11 +419,16 @@ def run_init():
         sys.exit(1)
 
     print_step("Checking GCP environment")
-    # **** are you authenticated?
     print_substep_not_done("Authenticated with gcloud")
-    # time.sleep(1)
-    clear_last_line()
-    print_substep_success("Authenticated with gcloud")
+    _is_authenticated, _reason = is_authenticated()
+    if _is_authenticated:
+        clear_last_line()
+        print_substep_success("Authenticated with gcloud")
+    else:
+        clear_last_line()
+        print_substep_failure("Authenticated with gcloud")
+        print_failure_explanation(_reason)
+        sys.exit(1)
 
     print_substep("Verifying GCloud configuration")
     gcloud_account = get_gcloud_account()
