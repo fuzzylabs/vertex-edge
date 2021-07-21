@@ -1,4 +1,9 @@
 #!/bin/bash
+
+# This script is a wrapper for running the vertex:edge Docker image
+# As well as running the image itself, it also mounts the Google Cloud secret key
+# So that we will be authenticated with GCP while inside the Docker container
+
 ACCOUNT=$(gcloud config get-value account)
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)

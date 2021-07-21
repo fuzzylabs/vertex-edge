@@ -1,4 +1,7 @@
-FROM python:3.8.0
+FROM python:3.9.6-slim
+
+RUN apt update
+RUN apt install -y curl
 
 # Install GCloud tools
 RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-347.0.0-linux-x86_64.tar.gz > /tmp/google-cloud-sdk.tar.gz
