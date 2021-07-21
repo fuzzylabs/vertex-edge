@@ -1,6 +1,6 @@
 FROM python:3.8.0
 
-# Downloading gcloud package
+# Install GCloud tools
 RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-347.0.0-linux-x86_64.tar.gz > /tmp/google-cloud-sdk.tar.gz
 
 RUN mkdir -p /usr/local/gcloud \
@@ -8,6 +8,8 @@ RUN mkdir -p /usr/local/gcloud \
   && /usr/local/gcloud/google-cloud-sdk/install.sh
 
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
+
+RUN gcloud components install alpha --quiet
 
 # Install k8s
 RUN curl -LO https://dl.k8s.io/release/v1.21.0/bin/linux/amd64/kubectl \
