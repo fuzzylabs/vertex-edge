@@ -18,6 +18,8 @@ from serde.yaml import to_yaml, from_yaml
 from edge.vertex_deploy import vertex_deploy
 from edge.gcloud import *
 from edge.tui import *
+from edge.exception import EdgeException
+from edge.versions import *
 import atexit
 import warnings
 import questionary
@@ -343,20 +345,63 @@ def run_init():
     print_step("Checking local environment")
 
     print_substep_not_done("Checking gcloud version")
-    # time.sleep(1)
-    clear_last_line()
-    print_substep_success("Checking gcloud version")
+    try:
+        gcloud_version = get_gcloud_version()
+        expected_gcloud_version_string = "2021.05.21"  # TODO find out expected version
+        expected_gcloud_version = Version.from_string(expected_gcloud_version_string)
+        if gcloud_version.is_at_least(expected_gcloud_version):
+            clear_last_line()
+            print_substep_success("Checking gcloud version")
+        else:
+            clear_last_line()
+            print_substep_failure("Checking gcloud version")
+            print_failure_explanation(f"Expected version of at least {expected_gcloud_version_string}. Update gcloud by running `gcloud components update`")
+            sys.exit(1)
+    except EdgeException as e:
+        clear_last_line()
+        print_substep_failure("Checking gcloud version")
+        print_failure_explanation(str(e))
+        sys.exit(1)
 
     print_substep_not_done("Checking kubectl version")
-    # time.sleep(1)
-    clear_last_line()
-    print_substep_success("Checking kubectl version")
+    try:
+        kubectl_version = get_kubectl_version()
+        expected_kubectl_version_string = "v1.19.0"  # TODO find out expected version
+        expected_kubectl_version = Version.from_string(expected_kubectl_version_string)
+        if kubectl_version.is_at_least(expected_kubectl_version):
+            clear_last_line()
+            print_substep_success("Checking kubectl version")
+        else:
+            clear_last_line()
+            print_substep_failure("Checking kubectl version")
+            print_failure_explanation(
+                f"Expected version of at least {expected_kubectl_version_string}. Please visit https://kubernetes.io/docs/tasks/tools/ for installation instructions.")
+            sys.exit(1)
+    except EdgeException as e:
+        clear_last_line()
+        print_substep_failure("Checking kubectl version")
+        print_failure_explanation(str(e))
+        sys.exit(1)
 
     print_substep_not_done("Checking helm version")
-    # time.sleep(1)
-    clear_last_line()
-    print_substep_failure("Checking helm version")
-    print_failure_explanation("Unable to locate Helm. Please visit https://blah for instructions.")
+    try:
+        helm_version = get_helm_version()
+        expected_helm_version_string = "v3.5.2"  # TODO find out expected version
+        expected_helm_version = Version.from_string(expected_helm_version_string)
+        if helm_version.is_at_least(expected_helm_version):
+            clear_last_line()
+            print_substep_success("Checking helm version")
+        else:
+            clear_last_line()
+            print_substep_failure("Checking helm version")
+            print_failure_explanation(
+                f"Expected version of at least {expected_helm_version_string}. Please visit https://helm.sh/docs/intro/install/ for installation instructions.")
+            sys.exit(1)
+    except EdgeException as e:
+        clear_last_line()
+        print_substep_failure("Checking helm version")
+        print_failure_explanation(str(e))
+        sys.exit(1)
 
     print_step("Checking GCP environment")
     # **** are you authenticated?
@@ -417,7 +462,7 @@ def run_init():
             print_substep_failure(f"Checking if billing is enabled for project '{gcloud_project}'")
             print_failure_explanation(f"Enable billing for {gcloud_project} in Google Cloud Console")
             sys.exit(1)
-    except Exception as e:
+    except EdgeException as e:
         clear_last_line()
         print_substep_failure(f"Checking if billing is enabled for project '{gcloud_project}'")
         print_failure_explanation(str(e))

@@ -1,0 +1,2 @@
+class EdgeException(Exception):
+    pass
