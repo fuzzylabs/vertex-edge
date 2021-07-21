@@ -13,7 +13,7 @@ from serde.yaml import to_yaml, from_yaml
 from edge.config import EdgeConfig, GCProjectConfig, VertexConfig, SacredConfig, StorageBucketConfig, WebAppConfig
 from edge.state import EdgeState
 from edge.sacred import setup_sacred, tear_down_sacred
-from edge.enable_api import enable_api
+from edge.enable_api import enable_api, enable_service_api
 from edge.endpoint import setup_endpoint, tear_down_endpoint
 from edge.storage import setup_storage, tear_down_storage
 from edge.dvc import setup_dvc
@@ -152,13 +152,13 @@ def setup_edge(_config: EdgeConfig, _lock_later: bool):
     enable_api(_config)
     print()
 
-    storage_bucket_output = setup_storage(_config)
-    if _lock_later:
-        EdgeState.lock(config.google_cloud_project.project_id, config.storage_bucket.bucket_name)
+    # storage_bucket_output = setup_storage(_config)
+    # if _lock_later:
+    #     EdgeState.lock(config.google_cloud_project.project_id, config.storage_bucket.bucket_name)
     print()
 
-    setup_dvc(_config, storage_bucket_output)
-    print()
+    # setup_dvc(_config, storage_bucket_output)
+    # print()
 
     sacred_output = setup_sacred(_config)
     print()
@@ -169,7 +169,7 @@ def setup_edge(_config: EdgeConfig, _lock_later: bool):
     _state = EdgeState(
         vertex_endpoint_output,
         sacred_output,
-        storage_bucket_output,
+        # storage_bucket_output,
     )
     _state.save(_config)
 
@@ -476,6 +476,11 @@ def run_init():
         print_failure_explanation(f"Use one of the regions that is available on Vertex AI:\n      {formatted_regions}")
         sys.exit(1)
 
+    gcloud_config = GCProjectConfig(
+        project_id=gcloud_project,
+        region=gcloud_region,
+    )
+
     print_substep_not_done(f"Checking if billing is enabled for project '{gcloud_project}'")
     try:
         if is_billing_enabled(gcloud_project):
@@ -492,32 +497,50 @@ def run_init():
         print_failure_explanation(str(e))
         sys.exit(1)
 
-    print_step("Initialise state file")
+    print_step("Initialise Google Storage and state file")
 
     print_substep_not_done("Enable Storage API")
-    time.sleep(2)
-    clear_last_line()
-    print_substep_success("Enable Storage API")
+    try:
+        enable_service_api("container.googleapis.com", gcloud_project)
+        clear_last_line()
+        print_substep_success(f"Enable Storage API")
+    except EdgeException as e:
+        clear_last_line()
+        print_substep_failure(f"Enable Storage API")
+        print_failure_explanation(str(e))
+        sys.exit(1)
 
     storage_bucket_name = questionary.text("Enter Storage bucket name to use:", qmark=qmark).ask()
     if storage_bucket_name is None or storage_bucket_name == "":
         print_substep_failure("Storage bucket name is required")
         sys.exit(1)
 
-    print_substep_not_done(f"Checking if bucket '{storage_bucket_name}' exists in project {gcloud_project}")
-    time.sleep(4)
-    clear_last_line()
-    print_substep(f"Bucket '{storage_bucket_name}' does not exist")
+    storage_config = StorageBucketConfig(
+        bucket_name=storage_bucket_name,
+        dvc_store_directory="dvcstore",
+        vertex_jobs_directory="vertex",
+    )
+    storage_state = setup_storage(gcloud_project, gcloud_region, storage_bucket_name)
 
-    print_substep_not_done(f"Creating bucket '{storage_bucket_name}'")
-    time.sleep(2)
-    clear_last_line()
-    print_substep_success(f"Creating bucket '{storage_bucket_name}'")
+    print_substep_not_done("Save state file")
+    _state = EdgeState(
+        storage_bucket_state=storage_state
+    )
 
+    _config = EdgeConfig(
+        google_cloud_project=gcloud_config,
+        storage_bucket=storage_config,
+    )
+    # TODO check if state already exists
+    _state.save(_config)
+    clear_last_line()
     print_substep_success("Save state file")
 
     print_step("Save configuration")
-    print_substep_success("Configuration saved to edge.yaml")
+    print_substep_not_done("Saving to edge.yaml...")
+    _config.save("./edge.yaml")
+    clear_last_line()
+    print_substep_success("Saved to edge.yaml")
 
 
 def webapp_handler(_config, _args):

@@ -1,4 +1,6 @@
 import os
+import subprocess
+from .exception import EdgeException
 from .config import EdgeConfig
 
 
@@ -29,3 +31,14 @@ def enable_api(_config: EdgeConfig):
     print("## Cloud Run")
     print("Required for deploying the webapp")
     os.system(f"gcloud services enable run.googleapis.com --project {project_id}")
+
+
+def enable_service_api(service: str, project_id: str):
+    try:
+        subprocess.check_output(
+            f"gcloud services enable {service} --project {project_id}",
+            shell=True,
+            stderr=subprocess.STDOUT
+        )
+    except subprocess.CalledProcessError:
+        raise EdgeException(f"Unexpected error while enabling {service} API")

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TypeVar, Type
+from typing import TypeVar, Type, Optional
 from serde import serialize, deserialize
 from serde.yaml import from_yaml, to_yaml
 import os
@@ -55,9 +55,9 @@ T = TypeVar("T", bound="EdgeState")
 class EdgeConfig:
     google_cloud_project: GCProjectConfig
     storage_bucket: StorageBucketConfig
-    sacred: SacredConfig
-    vertex: VertexConfig
-    web_app: WebAppConfig
+    sacred: Optional[SacredConfig] = None
+    vertex: Optional[VertexConfig] = None
+    web_app: Optional[WebAppConfig] = None
 
     def save(self, path: str):
         with open(path, "w") as f:
