@@ -138,7 +138,6 @@ def load_config(path: str) -> Optional[EdgeConfig]:
     except KeyError:
         print("Configuration file is malformed")
         sys.exit(1)
-        return None
 
     return _config
 
