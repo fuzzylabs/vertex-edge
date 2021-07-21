@@ -50,6 +50,13 @@ class EdgeState:
             return None
 
     @classmethod
+    def exists(cls: Type[T], _config: EdgeConfig) -> bool:
+        client = storage.Client(project=_config.google_cloud_project.project_id)
+        bucket = client.bucket(_config.storage_bucket.bucket_name)
+        blob = storage.Blob(".edge_state/edge_state.yaml", bucket)
+        return blob.exists()
+
+    @classmethod
     def lock(cls, project: str, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml") -> (bool, bool):
         """
         Lock the state file in Google Storage Bucket

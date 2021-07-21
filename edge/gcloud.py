@@ -60,8 +60,9 @@ def is_billing_enabled(project: str) -> bool:
         return response["billingEnabled"]
     except subprocess.CalledProcessError:
         raise EdgeException(
-            f"Unable to access billing for project {project}. Check project id and your permissions in "
-            f"Google Cloud."
+            f"Unable to access billing information for project '{project}'. "
+            f"Please verify that the project ID is valid and your user has permissions "
+            f"to access the billing information for this project."
         )
 
 
@@ -85,4 +86,16 @@ def is_authenticated() -> (bool, str):
             False,
             "gcloud does not have application default credentials configured. "
             "Run `gcloud auth application-default login`.",
+        )
+
+
+def project_exists(project_id: str) -> bool:
+    try:
+        subprocess.check_output(f"gcloud projects describe {project_id}", shell=True, stderr=subprocess.DEVNULL)
+        return True
+    except subprocess.CalledProcessError:
+        raise EdgeException(
+            f"Unable to find project {project_id}. "
+            "This means it does not exist or you do not have permissions to access it. "
+            "Please verify that the project ID is valid in Google Cloud Console."
         )

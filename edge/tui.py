@@ -6,21 +6,22 @@ styles = {
     "substep": "",
     "success": "fg:ansigreen",
     "failure": "fg:ansired",
+    "warning": "fg:ansiyellow",
 }
 
-qmark = "  ?"
+qmark = "    ?"
 
 
 def print_heading(text: str):
     questionary.print(text, styles["heading"])
 
 
-def strfmt_step(text: str):
-    return f"* {text}"
+def strfmt_step(text: str, emoji: str = "*"):
+    return f"{emoji} {text}"
 
 
-def print_step(text: str):
-    questionary.print(strfmt_step(text), styles["step"])
+def print_step(text: str, emoji: str = "*"):
+    questionary.print(strfmt_step(text, emoji), styles["step"])
 
 
 def strfmt_substep(text):
@@ -28,7 +29,7 @@ def strfmt_substep(text):
 
 
 def print_substep(text: str):
-    questionary.print(strfmt_substep(f". {text}"), styles["substep"])
+    questionary.print(strfmt_substep(f"◻️ {text}"), styles["substep"])
 
 
 def strfmt_substep_success(text):
@@ -37,6 +38,10 @@ def strfmt_substep_success(text):
 
 def strfmt_substep_failure(text):
     return strfmt_substep(f"❌ {text}")
+
+
+def strfmt_substep_warning(text):
+    return strfmt_substep(f"⚠️ {text}")
 
 
 def strfmt_substep_not_done(text):
@@ -55,12 +60,20 @@ def print_substep_not_done(text: str):
     questionary.print(strfmt_substep_not_done(text), styles["substep"])
 
 
+def print_substep_warning(text: str):
+    questionary.print(strfmt_substep_warning(text), styles["warning"])
+
+
 def strfmt_failure_explanation(text: str):
     return f"   - {text}"
 
 
 def print_failure_explanation(text: str):
     questionary.print(strfmt_failure_explanation(text), styles["failure"])
+
+
+def print_warning_explanation(text: str):
+    questionary.print(strfmt_failure_explanation(text), styles["warning"])
 
 
 def clear_last_line():
