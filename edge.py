@@ -348,6 +348,43 @@ def vertex_handler(_config, _args):
         sys.exit(0)
 
 
+def init_successful():
+    print()
+    questionary.print("Initialised successfully", style="fg:ansigreen")
+    print()
+    print(
+        """
+What's next? We suggest you proceed with:
+
+  Commit the new vertex:edge configuration to git:
+    git add edge.yaml && git commit -m "Initialise vertex:edge"
+
+  Configure an experiment tracker (optional):
+    ./edge.py experiment-tracker init [italic]
+
+  Configure data version control:
+    ./edge.py dvc init
+
+  Train and deploy a model (see X section of the README for more details):
+    ./edge.py vertex init
+    dvc repro ...
+    ./edge.py vertex deploy
+
+Happy herding! 🐏
+        """.strip()
+    )
+
+
+def init_failed():
+    print()
+    questionary.print("Initialisation failed", style="fg:ansired")
+    print()
+    questionary.print(
+        "See the errors above. For technical details see error log. See README for more details.",
+        style="fg:ansired"
+    )
+
+
 def run_init():
     print_heading("Initialising vertex:edge")
 
@@ -369,11 +406,13 @@ def run_init():
                 f"but we require at least {str(expected_gcloud_version)}. "
                 "Update gcloud by running `gcloud components update`."
             )
+            init_failed()
             sys.exit(1)
     except EdgeException as e:
         clear_last_line()
         print_substep_failure("Checking gcloud version")
         print_failure_explanation(str(e))
+        init_failed()
         sys.exit(1)
 
     print_substep_not_done("Checking kubectl version")
@@ -392,11 +431,13 @@ def run_init():
                 f"but we require at least {str(expected_kubectl_version)}. "
                 "Please visit https://kubernetes.io/docs/tasks/tools/ for installation instructions."
             )
+            init_failed()
             sys.exit(1)
     except EdgeException as e:
         clear_last_line()
         print_substep_failure("Checking kubectl version")
         print_failure_explanation(str(e))
+        init_failed()
         sys.exit(1)
 
     print_substep_not_done("Checking helm version")
@@ -420,6 +461,7 @@ def run_init():
         clear_last_line()
         print_substep_failure("Checking helm version")
         print_failure_explanation(str(e))
+        init_failed()
         sys.exit(1)
 
     print_step("Checking your GCP environment", emoji="☁️")
@@ -432,6 +474,7 @@ def run_init():
         clear_last_line()
         print_substep_failure("️Checking if you have authenticated with gcloud")
         print_failure_explanation(_reason)
+        init_failed()
         sys.exit(1)
 
     print_substep("Verifying GCloud configuration")
@@ -442,18 +485,21 @@ def run_init():
             "Run `gcloud auth login && gcloud auth application-default login` to authenticate "
             "with the correct account"
         )
+        init_failed()
         sys.exit(1)
 
     gcloud_project = get_gcloud_project()
     if gcloud_project is None or gcloud_project == "":
         print_failure_explanation("gcloud project id is unset")
         print_failure_explanation("Run `gcloud config set project $PROJECT_ID` to set the correct project id")
+        init_failed()
         sys.exit(1)
 
     gcloud_region = get_gcloud_region()
     if gcloud_region is None or gcloud_region == "":
         print_failure_explanation("gcloud region is unset")
         print_failure_explanation("Run `gcloud config set compute/region $REGION` to set the correct region")
+        init_failed()
         sys.exit(1)
 
     if not questionary.confirm(f"Is this the correct GCloud account: {gcloud_account}", qmark=qmark).ask():
@@ -461,12 +507,15 @@ def run_init():
             "Run `gcloud auth login && gcloud auth application-default login` to authenticate "
             "with the correct account"
         )
+        init_failed()
         sys.exit(1)
     if not questionary.confirm(f"Is this the correct project id: {gcloud_project}", qmark=qmark).ask():
         print_failure_explanation("Run `gcloud config set project <project_id>` to set the correct project id")
+        init_failed()
         sys.exit(1)
     if not questionary.confirm(f"Is this the correct region: {gcloud_region}", qmark=qmark).ask():
         print_failure_explanation("Run `gcloud config set compute/region <region>` to set the correct region")
+        init_failed()
         sys.exit(1)
 
     print_substep_not_done(f"{gcloud_region} is available on Vertex AI")
@@ -482,6 +531,7 @@ def run_init():
             "Please choose one of the following by running `gcloud config set compute/region <region>`:\n"
             f"      {formatted_regions}"
         )
+        init_failed()
         sys.exit(1)
 
     gcloud_config = GCProjectConfig(
@@ -498,6 +548,7 @@ def run_init():
         clear_last_line()
         print_substep_failure(f"Checking if project '{gcloud_project}' exists")
         print_failure_explanation(str(e))
+        init_failed()
         sys.exit(1)
 
     print_substep_not_done(f"Checking if billing is enabled for project '{gcloud_project}'")
@@ -514,6 +565,7 @@ def run_init():
                 f"https://cloud.google.com/billing/docs/how-to/modify-projectBilling is not enabled "
                 f"for project '{gcloud_project}'."
             )
+            init_failed()
             sys.exit(1)
     except EdgeException as e:
         clear_last_line()
@@ -531,6 +583,7 @@ def run_init():
         clear_last_line()
         print_substep_failure(f"Enabling Storage API")
         print_failure_explanation(str(e))
+        init_failed()
         sys.exit(1)
 
     print_substep("Configuring Google Storage bucket")
@@ -544,6 +597,7 @@ def run_init():
     ).ask()
     if storage_bucket_name is None or storage_bucket_name == "":
         print_substep_failure("Storage bucket name is required")
+        init_failed()
         sys.exit(1)
 
     storage_config = StorageBucketConfig(
@@ -589,6 +643,8 @@ def run_init():
     _config.save("./edge.yaml")
     clear_last_line()
     print_substep_success("Saving configuration to edge.yaml")
+
+    init_successful()
 
 
 def webapp_handler(_config, _args):
