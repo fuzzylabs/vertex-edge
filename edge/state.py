@@ -3,9 +3,13 @@ from serde import serialize, deserialize
 from serde.yaml import to_yaml, from_yaml
 from dataclasses import dataclass
 from google.cloud import storage
+
+from edge.exception import EdgeException
 from edge.storage import get_bucket, StorageBucketState
 from edge.config import EdgeConfig
+from edge.tui import StepTUI, SubStepTUI
 from typing import Type, TypeVar, Optional
+from contextlib import contextmanager
 
 
 @deserialize
@@ -40,14 +44,37 @@ class EdgeState:
         blob.upload_from_string(to_yaml(self))
 
     @classmethod
-    def load(cls: Type[T], _config: EdgeConfig) -> Optional[T]:
-        client = storage.Client(project=_config.google_cloud_project.project_id)
-        bucket = client.bucket(_config.storage_bucket.bucket_name)
-        blob = storage.Blob(".edge_state/edge_state.yaml", bucket)
-        if blob.exists():
-            return from_yaml(EdgeState, blob.download_as_bytes(client).decode("utf-8"))
-        else:
-            return None
+    @contextmanager
+    def load(cls: Type[T], _config: EdgeConfig, to_lock: bool = False, to_save: bool = False) -> T:
+        with StepTUI("Loading vertex:edge state", emoji="💾"):
+            state = None
+            locked = False
+
+            if to_lock:
+                with SubStepTUI("Locking state"):
+                    locked = EdgeState.lock(_config.google_cloud_project.project_id,
+                                            _config.storage_bucket.bucket_name)
+
+            with SubStepTUI("Loading state"):
+                client = storage.Client(project=_config.google_cloud_project.project_id)
+                bucket = client.bucket(_config.storage_bucket.bucket_name)
+                blob = storage.Blob(".edge_state/edge_state.yaml", bucket)
+
+                if blob.exists():
+                    state = from_yaml(EdgeState, blob.download_as_bytes(client).decode("utf-8"))
+                else:
+                    raise EdgeException(f"State file is not found in '{_config.storage_bucket.bucket_name}' bucket."
+                                        f"Initialise vertex:edge state by running `./edge.py init.`")
+        try:
+            yield state
+        finally:
+            with StepTUI("Saving vertex:edge state", emoji="💾"):
+                if to_save and state is not None:
+                    with SubStepTUI("Saving state"):
+                        state.save(_config)
+                if locked:
+                    with SubStepTUI("Unlocking state"):
+                        EdgeState.unlock(_config.google_cloud_project.project_id, _config.storage_bucket.bucket_name)
 
     @classmethod
     def exists(cls: Type[T], _config: EdgeConfig) -> bool:
@@ -57,26 +84,24 @@ class EdgeState:
         return blob.exists()
 
     @classmethod
-    def lock(cls, project: str, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml") -> (bool, bool):
+    def lock(cls, project: str, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml") -> bool:
         """
         Lock the state file in Google Storage Bucket
 
+        :param project:
         :param bucket_name:
         :param blob_name:
         :return: (bool, bool) -- is lock successful, is state to be locked later
         """
         bucket = get_bucket(project, bucket_name)
         if bucket is None or not bucket.exists():
-            print("Google Storage Bucket does not exist, lock later...")
-            return False, True
+            raise EdgeException("Google Storage Bucket does not exist. Initialise it by running `./edge.py init.`")
         blob = storage.Blob(f"{blob_name}.lock", bucket)
         if blob.exists():
-            print("State file is already locked")
-            return False, False
+            raise EdgeException("State file is already locked")
 
         blob.upload_from_string("locked")
-        print("State file locked")
-        return True, False
+        return True
 
     @classmethod
     def unlock(cls, project: str, bucket_name: str, blob_name: str = ".edge_state/edge_state.yaml"):
@@ -85,4 +110,3 @@ class EdgeState:
 
         if bucket is not None and blob.exists():
             blob.delete()
-            print("State file unlocked")

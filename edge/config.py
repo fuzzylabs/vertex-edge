@@ -3,6 +3,7 @@ from typing import TypeVar, Type, Optional
 from serde import serialize, deserialize
 from serde.yaml import from_yaml, to_yaml
 import os
+from contextlib import contextmanager
 
 
 @deserialize
@@ -71,6 +72,12 @@ class EdgeConfig:
         return from_yaml(EdgeConfig, yaml_str)
 
     @classmethod
-    def load_default(cls: Type[T]) -> T:
+    @contextmanager
+    def load_default(cls: Type[T], to_save: bool = False) -> T:
         config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../edge.yaml")
-        return EdgeConfig.load(config_path)
+        config = EdgeConfig.load(config_path)
+        try:
+            yield config
+        finally:
+            if to_save:
+                config.save(config_path)

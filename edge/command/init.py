@@ -10,7 +10,7 @@ from edge.versions import get_gcloud_version, Version, get_kubectl_version, get_
 import questionary
 
 
-def run_init():
+def edge_init():
     success_title = "Initialised successfully"
     success_message = """
 What's next? We suggest you proceed with:
