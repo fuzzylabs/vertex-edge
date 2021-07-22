@@ -9,6 +9,8 @@ def dvc_init(config: EdgeConfig):
     intro = "Initialising data version control (DVC)"
     success_title = "DVC initialised successfully"
     success_message = """
+Now you can version your data using DVC. See https://dvc.org/doc for more details about how it can be used. 
+
 What's next? We suggest you proceed with:
 
   Train and deploy a model (see X section of the README for more details):

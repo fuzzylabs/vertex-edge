@@ -70,7 +70,7 @@ def dvc_add_remote(path: str):
                     if correct_path:
                         return
                     else:
-                        sub_step.update(f"Modifying existing storage to {path}")
+                        sub_step.update(f"Modifying existing storage URI to '{path}'")
                         subprocess.check_output(
                             f"dvc remote modify storage url {path} && dvc remote default storage", shell=True,
                             stderr=subprocess.DEVNULL
@@ -112,9 +112,13 @@ def setup_dvc(bucket_path: str, dvc_store_directory: str):
                     sub_step.set_dirty()
                     sub_step.add_explanation(
                         f"DVC remote storage is configured to '{configured_storage_path}', "
-                        f"but vertex:edge config expects '{storage_path}'. "
-                        "This might mean that DVC has been already initialised to work with a different GCP "
-                        "environment. If this is the case, we recommend to reinitialise DVC from scratch"
+                        f"but vertex:edge has been configured to use '{storage_path}'. "
+                        f"This might mean that DVC has been already initialised to work with "
+                        f"a different GCP environment. "
+                        f"If this is the case, we recommend to reinitialise DVC from scratch. \n\n     "
+                        f"Alternatively, you may have changed the bucket name on purpose in your GCP environment. "
+                        f"In which case, DVC does not need to be reinitialised, and your DVC config will be "
+                        f"updated to match your vertex:edge config."
                     )
                     to_destroy = questionary.confirm(
                         "Do you want to destroy DVC and initialise it from scratch? (this action is destructive!)",
