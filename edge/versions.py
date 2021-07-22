@@ -47,12 +47,11 @@ def get_version(command) -> str:
         raise EdgeException(f"Unexpected error, while trying to get version with `{command}`")
 
 
-def get_gcloud_version() -> Version:
+def get_gcloud_version(component: str = "core") -> Version:
     if not command_exist("gcloud"):
         raise EdgeException("Unable to locate gcloud. Please visit https://cloud.google.com/sdk/docs/install for installation instructions.")
     version_string = get_version("gcloud version --format json")
-    return Version.from_string(json.loads(version_string)["core"])
-
+    return Version.from_string(json.loads(version_string)[component])
 
 def get_kubectl_version() -> Version:
     if not command_exist("kubectl"):
