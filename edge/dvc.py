@@ -63,7 +63,7 @@ def get_dvc_storage_path() -> Optional[str]:
 
 def dvc_add_remote(path: str):
     with StepTUI("Configuring DVC remote storage", emoji="⚙️"):
-        with SubStepTUI(f"Adding {path} as DVC remote storage") as sub_step:
+        with SubStepTUI(f"Adding '{path}' as DVC remote storage URI") as sub_step:
             try:
                 storage_exists, correct_path = dvc_remote_exists(path)
                 if storage_exists:

@@ -1,3 +1,4 @@
+from edge.command.common.precommand_check import precommand_checks
 from edge.config import EdgeConfig
 from edge.state import EdgeState
 from edge.tui import TUI
@@ -26,6 +27,7 @@ Happy herding! 🐏
         failure_title,
         failure_message
     ) as tui:
+        precommand_checks(config)
         with EdgeState.load(config) as state:
             setup_dvc(
                 state.storage_bucket_state.bucket_path,
