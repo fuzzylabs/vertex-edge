@@ -156,7 +156,7 @@ Happy herding! 🐏
                     "https://cloud.google.com/storage/docs/naming-buckets."
                     "\n      Enter Storage bucket name to use: ",
                     qmark=qmark
-                ).ask()
+                ).ask().strip()
                 if storage_bucket_name is None or storage_bucket_name == "":
                     raise EdgeException("Storage bucket name is required")
 
