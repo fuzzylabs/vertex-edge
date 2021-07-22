@@ -68,13 +68,15 @@ class EdgeState:
         try:
             yield state
         finally:
-            with StepTUI("Saving vertex:edge state", emoji="💾"):
-                if to_save and state is not None:
-                    with SubStepTUI("Saving state"):
-                        state.save(_config)
-                if locked:
-                    with SubStepTUI("Unlocking state"):
-                        EdgeState.unlock(_config.google_cloud_project.project_id, _config.storage_bucket.bucket_name)
+            if (to_save and state is not None) or locked:
+                with StepTUI("Saving vertex:edge state", emoji="💾"):
+                    if to_save and state is not None:
+                        with SubStepTUI("Saving state"):
+                            state.save(_config)
+                    if locked:
+                        with SubStepTUI("Unlocking state"):
+                            EdgeState.unlock(_config.google_cloud_project.project_id,
+                                             _config.storage_bucket.bucket_name)
 
     @classmethod
     def exists(cls: Type[T], _config: EdgeConfig) -> bool:

@@ -106,20 +106,23 @@ def setup_dvc(bucket_path: str, dvc_store_directory: str):
                     )
                 elif not is_remote_correct:
                     sub_step.update(
-                        f"DVC remote storage does not match vertex:edge config: expected -- {storage_path}, "
-                        f"got -- {get_dvc_storage_path()}",
+                        f"DVC remote storage does not match vertex:edge config",
                         status=TUIStatus.WARNING
                     )
                     sub_step.set_dirty()
                     sub_step.add_explanation(
-                        "WARNING: To use the new Google Storage bucket it is advised to destroy DVC repository, "
-                        "and initialise it from scratch."
+                        f"DVC remote storage is configured to '{configured_storage_path}', "
+                        f"but vertex:edge config expects '{storage_path}'. "
+                        "This might mean that DVC has been already initialised to work with a different GCP "
+                        "environment. If this is the case, we recommend to reinitialise DVC from scratch"
                     )
                     to_destroy = questionary.confirm(
-                        "Do you want to destroy DVC and initialise it from scratch?",
+                        "Do you want to destroy DVC and initialise it from scratch? (this action is destructive!)",
                         default=False,
                         qmark=qmark
                     ).ask()
+                    if to_destroy is None:
+                        raise EdgeException("Canceled by user")
         if to_destroy:
             dvc_destroy()
             exists = False

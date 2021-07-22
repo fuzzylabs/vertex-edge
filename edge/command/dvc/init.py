@@ -6,10 +6,19 @@ from edge.dvc import setup_dvc
 
 def dvc_init(config: EdgeConfig):
     intro = "Initialising data version control (DVC)"
-    success_title = "DVC is initialised"
-    success_message = "success"
-    failure_title = "DVC failed to initialise"
-    failure_message = "failure"
+    success_title = "DVC initialised successfully"
+    success_message = """
+What's next? We suggest you proceed with:
+
+  Train and deploy a model (see X section of the README for more details):
+    ./edge.py vertex init
+    dvc repro ...
+    ./edge.py vertex deploy
+
+Happy herding! 🐏
+    """.strip()
+    failure_title = "DVC initialisation failed"
+    failure_message = "See the errors above. For technical details see error log. See README for more details."
     with TUI(
         intro,
         success_title,
