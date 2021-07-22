@@ -1,4 +1,5 @@
 import sys
+import traceback
 from typing import Optional
 import questionary
 from enum import Enum
@@ -153,7 +154,7 @@ class SubStepTUI(object):
     }
 
     emoji = {
-        TUIStatus.NEUTRAL: "◻️",
+        TUIStatus.NEUTRAL: "🤔",
         TUIStatus.PENDING: "⏳",
         TUIStatus.SUCCESSFUL: "✔",
         TUIStatus.FAILED: "❌",
@@ -185,7 +186,14 @@ class SubStepTUI(object):
                 self.update(status=TUIStatus.WARNING)
             self.add_explanation(str(exc_val))
         else:
-            return False
+            self.update(status=TUIStatus.FAILED)
+            self.add_explanation(
+                "Unexpected error occurred:\n\n"
+                f"{''.join(traceback.format_tb(exc_tb))}\n"
+                f"  {exc_type.__name__}: {str(exc_val)}\n"
+                f"\n     Please raise an issue for this error at https://github.com/fuzzylabs/vertex-edge/issues"
+            )
+            raise EdgeException("Unexpected error occurred, but already reported")
 
         self._entered = False
 

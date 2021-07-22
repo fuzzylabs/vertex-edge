@@ -2,11 +2,11 @@ import glob
 import subprocess
 from typing import Optional
 
-import dvc
 import os
 import shutil
-from edge.config import EdgeConfig
-from edge.state import StorageBucketState
+from edge.exception import EdgeException
+from edge.tui import StepTUI, SubStepTUI, TUIStatus, qmark
+import questionary
 
 
 def dvc_exists() -> bool:
@@ -14,33 +14,29 @@ def dvc_exists() -> bool:
 
 
 def dvc_init():
-    if dvc_exists():
-        return
-    print("## Initialising DVC")
-    try:
-        subprocess.check_output("dvc init", shell=True)
-    except subprocess.CalledProcessError as e:
-        print(e.output)
-        print("Error occurred while initialising DVC")
-        exit(1)
-    print("DVC is initialised")
+    with StepTUI("Initialising DVC", emoji="🔨"):
+        with SubStepTUI("Initialising DVC"):
+            try:
+                subprocess.check_output("dvc init", shell=True, stderr=subprocess.DEVNULL)
+            except subprocess.CalledProcessError as e:
+                raise EdgeException("Unexpected error occurred while initialising DVC:\n{str(e)}")
 
 
 def dvc_destroy():
-    print("## Deleting DVC configuration [.dvc]")
-    shutil.rmtree(".dvc")
-    print("## Deleting DVC data [data/fashion-mnist/*.dvc]")
-    for f in glob.glob("data/fashion-mnist/*.dvc"):
-        os.remove(f)
-    print("## Deleting pipeline lock file [models/pipelines/fashion/dvc.lock]")
-    if os.path.exists("models/pipelines/fashion/dvc.lock"):
-        os.remove("models/pipelines/fashion/dvc.lock")
-    print("DVC is destroyed")
+    with StepTUI("Destroying DVC", emoji="🔥"):
+        with SubStepTUI("Deleting DVC configuration [.dvc]"):
+            shutil.rmtree(".dvc")
+        with SubStepTUI("Deleting DVC data [data/fashion-mnist/*.dvc]"):
+            for f in glob.glob("data/fashion-mnist/*.dvc"):
+                os.remove(f)
+        with SubStepTUI("Deleting pipeline lock file [models/pipelines/fashion/dvc.lock]"):
+            if os.path.exists("models/pipelines/fashion/dvc.lock"):
+                os.remove("models/pipelines/fashion/dvc.lock")
 
 
 def dvc_remote_exists(path: str) -> (bool, bool):
     try:
-        remotes_raw = subprocess.check_output("dvc remote list", shell=True).decode("utf-8")
+        remotes_raw = subprocess.check_output("dvc remote list", shell=True, stderr=subprocess.DEVNULL).decode("utf-8")
         remotes = [x.split("\t") for x in remotes_raw.strip().split("\n") if len(x.split("\t")) == 2]
         for remote in remotes:
             if remote[0] == "storage":
@@ -50,70 +46,95 @@ def dvc_remote_exists(path: str) -> (bool, bool):
                     return True, False
         return False, False
     except subprocess.CalledProcessError as e:
-        print(e.output)
-        print("Error occurred while adding remote storage to DVC")
-        exit(1)
+        raise EdgeException(f"Unexpected error occurred while adding remote storage to DVC:\n{str(e)}")
 
 
 def get_dvc_storage_path() -> Optional[str]:
     try:
-        remotes_raw = subprocess.check_output("dvc remote list", shell=True).decode("utf-8")
+        remotes_raw = subprocess.check_output("dvc remote list", shell=True, stderr=subprocess.DEVNULL).decode("utf-8")
         remotes = [x.split("\t") for x in remotes_raw.strip().split("\n") if len(x.split("\t")) == 2]
         for remote in remotes:
             if remote[0] == "storage":
                 return remote[1].strip()
         return None
     except subprocess.CalledProcessError as e:
-        print(e.output)
-        print("Error occurred while getting DVC remote storage path")
-        exit(1)
+        raise EdgeException(f"Unexpected error occurred while getting DVC remote storage path:\n{str(e)}")
 
 
 def dvc_add_remote(path: str):
-    try:
-        print(f"## Adding {path} to DVC remotes")
-        storage_exists, correct_path = dvc_remote_exists(path)
-        if storage_exists:
-            if correct_path:
-                print(f"{path} has already been added")
-            else:
-                print(f"modifying existing storage to {path}")
-                subprocess.check_output(
-                    f"dvc remote modify storage url {path} && dvc remote default storage", shell=True
+    with StepTUI("Configuring DVC remote storage", emoji="⚙️"):
+        with SubStepTUI(f"Adding '{path}' as DVC remote storage URI") as sub_step:
+            try:
+                storage_exists, correct_path = dvc_remote_exists(path)
+                if storage_exists:
+                    if correct_path:
+                        return
+                    else:
+                        sub_step.update(f"Modifying existing storage URI to '{path}'")
+                        subprocess.check_output(
+                            f"dvc remote modify storage url {path} && dvc remote default storage", shell=True,
+                            stderr=subprocess.DEVNULL
+                        )
+                else:
+                    subprocess.check_output(f"dvc remote add storage {path} && dvc remote default storage", shell=True,
+                                            stderr=subprocess.DEVNULL)
+            except subprocess.CalledProcessError as e:
+                raise EdgeException(f"Unexpected error occurred while adding remote storage to DVC:\n{str(e)}")
+
+
+def setup_dvc(bucket_path: str, dvc_store_directory: str):
+    storage_path = os.path.join(bucket_path, dvc_store_directory)
+    exists = False
+    is_remote_correct = False
+    to_destroy = False
+    with StepTUI("Checking DVC configuration", emoji="🔍"):
+        with SubStepTUI("Checking if DVC is already initialised") as sub_step:
+            exists = dvc_exists()
+            if not exists:
+                sub_step.update(
+                    message="DVC is not initialised",
+                    status=TUIStatus.NEUTRAL
                 )
-        else:
-            subprocess.check_output(f"dvc remote add storage {path} && dvc remote default storage", shell=True)
-    except subprocess.CalledProcessError as e:
-        print(e.output)
-        print("Error occurred while adding remote storage to DVC")
-        exit(1)
+        if exists:
+            with SubStepTUI("Checking if DVC remote storage is configured") as sub_step:
+                configured_storage_path = get_dvc_storage_path()
+                is_remote_correct = storage_path == configured_storage_path
+                if configured_storage_path is None:
+                    sub_step.update(
+                        f"DVC remote storage is not configured",
+                        status=TUIStatus.NEUTRAL
+                    )
+                elif not is_remote_correct:
+                    sub_step.update(
+                        f"DVC remote storage does not match vertex:edge config",
+                        status=TUIStatus.WARNING
+                    )
+                    sub_step.set_dirty()
+                    sub_step.add_explanation(
+                        f"DVC remote storage is configured to '{configured_storage_path}', "
+                        f"but vertex:edge has been configured to use '{storage_path}'. "
+                        f"This might mean that DVC has been already initialised to work with "
+                        f"a different GCP environment. "
+                        f"If this is the case, we recommend to reinitialise DVC from scratch. \n\n     "
+                        f"Alternatively, you may have changed the bucket name on purpose in your GCP environment. "
+                        f"In which case, DVC does not need to be reinitialised, and your DVC config will be "
+                        f"updated to match your vertex:edge config."
+                    )
+                    to_destroy = questionary.confirm(
+                        "Do you want to destroy DVC and initialise it from scratch? (this action is destructive!)",
+                        default=False,
+                        qmark=qmark
+                    ).ask()
+                    if to_destroy is None:
+                        raise EdgeException("Canceled by user")
+        if to_destroy:
+            dvc_destroy()
+            exists = False
+            is_remote_correct = False
 
+        # Checking again, DVC might have been destroyed by this point
+        if not exists:
+            dvc_init()
 
-def setup_dvc(_config: EdgeConfig, storage_state: StorageBucketState):
-    storage_path = os.path.join(storage_state.bucket_path, _config.storage_bucket.dvc_store_directory)
-    print("# Setting up data versioning with DVC")
-    print("## Checking if DVC is already initialised")
-    exists = dvc_exists()
-    if exists:
-        print("DVC is already initialised")
-        if storage_path != get_dvc_storage_path():
-            print(
-                f"DVC remote storage does not match vertex:edge config: expected -- {storage_path}, "
-                f"got -- {get_dvc_storage_path()}"
-            )
-            print(
-                "WARNING: To use the new Google Storage bucket it is advised to destroy DVC repository, "
-                "and initialise it from scratch."
-            )
-            choice = None
-            while choice not in ["y", "n"]:
-                choice = input("Do you want to destroy DVC and initialise it from scratch (y/n)? [n]: ").strip().lower()
-                if choice == "":
-                    choice = "n"
-
-            if choice == "y":
-                dvc_destroy()
-    else:
-        print("DVC is not initialised")
-    dvc_init()
-    dvc_add_remote(storage_path)
+        if not is_remote_correct:
+            dvc_add_remote(storage_path)

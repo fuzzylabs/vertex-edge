@@ -1,3 +1,4 @@
+from edge.command.common.precommand_check import check_gcloud_authenticated, check_project_exists, check_billing_enabled
 from edge.config import GCProjectConfig, StorageBucketConfig, EdgeConfig
 from edge.enable_api import enable_service_api
 from edge.exception import EdgeException
@@ -10,7 +11,7 @@ from edge.versions import get_gcloud_version, Version, get_kubectl_version, get_
 import questionary
 
 
-def run_init():
+def edge_init():
     success_title = "Initialised successfully"
     success_message = """
 What's next? We suggest you proceed with:
@@ -91,10 +92,7 @@ Happy herding! 🐏
                     )
 
         with StepTUI(message="Checking your GCP environment", emoji="☁️") as step:
-            with SubStepTUI(message="️Checking if you have authenticated with gcloud") as sub_step:
-                _is_authenticated, _reason = is_authenticated()
-                if not _is_authenticated:
-                    raise EdgeException(_reason)
+            check_gcloud_authenticated()
 
             with SubStepTUI(message="Verifying GCloud configuration") as sub_step:
                 gcloud_account = get_gcloud_account()
@@ -146,17 +144,8 @@ Happy herding! 🐏
                 region=gcloud_region,
             )
 
-            with SubStepTUI(f"Checking if project '{gcloud_project}' exists") as sub_step:
-                project_exists(gcloud_project)
-
-            with SubStepTUI(f"Checking if billing is enabled for project '{gcloud_project}'") as sub_step:
-                if not is_billing_enabled(gcloud_project):
-                    raise EdgeException(
-                        f"Billing is not enabled for project '{gcloud_project}'. "
-                        f"Please enable billing for this project following these instructions "
-                        f"https://cloud.google.com/billing/docs/how-to/modify-projectBilling is not enabled "
-                        f"for project '{gcloud_project}'."
-                    )
+            check_project_exists(gcloud_project)
+            check_billing_enabled(gcloud_project)
 
         with StepTUI(message="Initialising Google Storage and vertex:edge state file", emoji="💾") as step:
             with SubStepTUI("Enabling Storage API") as sub_step:
