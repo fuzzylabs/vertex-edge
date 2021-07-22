@@ -5,6 +5,8 @@ from serde.yaml import from_yaml, to_yaml
 import os
 from contextlib import contextmanager
 
+from edge.tui import StepTUI, SubStepTUI
+
 
 @deserialize
 @serialize
@@ -80,4 +82,6 @@ class EdgeConfig:
             yield config
         finally:
             if to_save:
-                config.save(config_path)
+                with StepTUI("Saving configuration", emoji="💾"):
+                    with SubStepTUI("Saving configuration"):
+                        config.save(config_path)

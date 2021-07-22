@@ -5,7 +5,7 @@ from edge.tui import TUI
 from edge.dvc import setup_dvc
 
 
-def dvc_init(config: EdgeConfig):
+def dvc_init():
     intro = "Initialising data version control (DVC)"
     success_title = "DVC initialised successfully"
     success_message = """
@@ -29,10 +29,11 @@ Happy herding! 🐏
         failure_title,
         failure_message
     ) as tui:
-        precommand_checks(config)
-        with EdgeState.load(config) as state:
-            setup_dvc(
-                state.storage_bucket_state.bucket_path,
-                config.storage_bucket.dvc_store_directory
-            )
+        with EdgeConfig.load_default() as config:
+            precommand_checks(config)
+            with EdgeState.load(config) as state:
+                setup_dvc(
+                    state.storage_bucket_state.bucket_path,
+                    config.storage_bucket.dvc_store_directory
+                )
 
