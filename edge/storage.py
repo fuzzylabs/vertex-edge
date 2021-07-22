@@ -74,16 +74,19 @@ def tear_down_storage(_config: EdgeConfig, _state):
 
 def setup_storage(project_id: str, region: str, bucket_name: str) -> StorageBucketState:
     with SubStepTUI(f"Checking if '{bucket_name}' exists") as sub_step:
-        bucket_path = get_bucket_uri(
-            project_id,
-            bucket_name,
-        )
-        if bucket_path is None:
-            clear_last_line()
-            sub_step.update(message=f"'{bucket_name}' does not exist, creating it")
-            bucket_path = create_bucket(
+        try:
+            bucket_path = get_bucket_uri(
                 project_id,
-                region,
                 bucket_name,
             )
-        return StorageBucketState(bucket_path)
+            if bucket_path is None:
+                clear_last_line()
+                sub_step.update(message=f"'{bucket_name}' does not exist, creating it")
+                bucket_path = create_bucket(
+                    project_id,
+                    region,
+                    bucket_name,
+                )
+            return StorageBucketState(bucket_path)
+        except ValueError as e:
+            raise EdgeException(f"Unexpected error while setting up Storage bucket:\n{str(e)}")
