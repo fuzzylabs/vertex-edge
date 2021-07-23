@@ -7,7 +7,7 @@
 
 This repository showcases _edge_, a tool for deploying models to [Vertex](https://cloud.google.com/vertex-ai/docs/start) on [Google Cloud Platform](https://cloud.google.com). We've also provided a reference example that shows how to train and deploy a simple model to GCP, and we show how to get up-and-running with everything you need to do MLOps _right_ (in our opinion).
 
-You can use this repo as a template for your projects. To get started, **fork this repo** and follow the instructions in this README to configure the tools for your GCP enviroment. By the end, you'll have an MLOps-ready environment with a simple model trained and deployed.
+You can use this repo as a template for your projects. To get started, first [**fork this repo**](https://github.com/fuzzylabs/vertex-edge/fork) and then follow the instructions in this README to configure the tools for your GCP enviroment. By the end, you'll have an MLOps-ready environment with a simple model trained and deployed.
 
 ## Feedback and contributions
 
@@ -127,57 +127,55 @@ Here's a brief guide to how this project is organised:
 * [models](models) - each model has its own sub-directory under `models`, and within each model directory we have training code and the training pipeline.
 * [services](services) - models by themselves aren't useful without things that interact with the model. `services` contains deployable web services that interact with models.
 
-## Edge setup script
-
-Finally, we come to the vertex:edge tool (`edge.py`) whose purpose is to simplify setting up a machine learning project on Google Cloud Platform from scratch.
-
-It can:
-
-* Run a configuration wizard and save the resulting config for future use.
-* Set up all the necessary resources in GCP, namely
-    * Initialise DVC in the repository.
-    * Enable required Google Cloud APIs.
-    * Create a Storage bucket for dataset and model storage.
-    * Set up Vertex AI Endpoint for model deployment.
-    * Create Kubernetes cluster and set up Sacred / Omniboard on it for experiment tracking.
-* Build and push Docker images for a web app, and for model serving.
-* Deploy a web app to Cloud Run.
-* Deploy a trained model to Vertex AI.
-
-Next we'll look at how to use this script to setup an MLOps-ready project in GCP.
-
 <a name="installing"></a>
 # Installing on your GCP environment
 
-We recommend forking this repository at this point. You'll be changing configuration files, and so you'll want your own repo so you can push the changes.
+If you haven't already done so, we recommend [forking this repository](https://github.com/fuzzylabs/vertex-edge/fork) before continuing. This is because you'll be changing some configuration files along the way, which you'll want to commit to your own fork.
 
 ## Prerequisites 
 
-* Python 3
+To begin with there are only three things that you need to install:
+
 * [pyenv](https://github.com/pyenv/pyen)
 * [gcloud command line tool](https://cloud.google.com/sdk/docs/install)
-* helm - only needed if you're running the installation outside of Docker
-* kubectl - only needed if you're running the installation outside of Docker
 
 ## Setup Python environment
 
-To make collaboration go smoothly, we really want to make sure that every developer can reproduce the same development environment, which means everybody uses the same versions of Python, and the same Python dependencies.
+To aid collaboration we want to make sure that every developer can reproduce the same development environment, which means everybody uses the same versions of Python and the same Python dependencies.
 
 ### PyEnv
 
-First, to manage Python, we'll use [PyEnv](https://github.com/pyenv/pyenv). Follow the instructions for your operating system; once installed, PyEnv will download and make available the appropriate version of Python for you.
+To manage Python, we'll use [PyEnv](https://github.com/pyenv/pyenv). Follow the instructions for your operating system; once installed, PyEnv will download and manage of Python versions for you.
 
-The Python version for this project is kept in [.python-version](.python-version). We can install and activate this version of Python by running:
+The Python version for this project is kept in [.python-version](.python-version). PyEnv uses this file to discover which version of Python it should be using.
+
+#### When setting up for the first time
+
+You should run
 
 ```
 pyenv install
 ```
 
-Now if you run `python --version` it will match what's in [.python-version](.python-version).
+Followed by
+
+```
+eval "$(pyenv init --path)"
+```
+
+After which, if you run `python --version`, it will match what's in [.python-version](.python-version).
 
 ### Python dependencies (venv + PIP)
 
 With the correct version of Python set up, we'll use [Python venv](https://docs.python.org/3/library/venv.html) to provide an isolated Python environment, and [PIP](https://pypi.org/project/pip) to install and manage Python dependencies.
+
+**First, please ensure you have the most recent version of PIP installed** by running
+
+```
+pip install --upgrade pip
+```
+
+Then setup the environment and install dependencies:
 
 ```
 python -m venv env/
@@ -185,11 +183,13 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 
-[comment]: <> (add pip version)
-
 ## Setting up GCP environment
 
-Now you'll need a [GCP account](https://cloud.google.com), so sign up for one if you haven't already done so. Within your GCP account, [create a new project](https://cloud.google.com/resource-manager/docs/creating-managing-projects), or you can use an existing project if you prefer.
+Now you'll need a [GCP account](https://cloud.google.com), so sign up for one if you haven't already done so.
+
+Within your GCP account, [create a new project](https://cloud.google.com/resource-manager/docs/creating-managing-projects), or you can use an existing project if you prefer.
+
+Make sure you [enable billing](https://cloud.google.com/billing/docs/how-to/modify-project) for your new project too.
 
 ## Authenticate with GCP
 
@@ -207,64 +207,52 @@ Followed by
 gcloud auth application-default login
 ```
 
-## Configure vertex:edge for your GCP environment
-
-The configuration file `edge.yaml` contains all the information needed to setup tools and models in GCP. The `edge.yaml` that we've provided is only an example; you'll need to create your own.
-
-To start the configuration wizard, run
+Next you need to configure the project ID. This should be the project which you created during 'Setting up GCP environment' above.
 
 ```
-./edge.py config
+gcloud config set project <your project ID>
 ```
 
-This will ask you a series of questions and then it will overwrite `edge.yaml` with your new configuration.
-
-## Install on GCP
-
-If you're happy with the configuration, you're now ready to install all the things:
-
-The easiest way to do this is using Docker. First, build the image:
+Finally, you'll need to configure a region. Please see the [GCP documentation](https://cloud.google.com/vertex-ai/docs/general/locations#feature-availability) to understand which regions are available for Vertex.
 
 ```
-docker build -t edge
+gcloud config set region <region name>
 ```
 
-Then run
+## Initialise vertex:edge for your GCP environment
+
+Run
 
 ```
-./edge_docker.sh install
+./clear_data.sh
+./edge.py init
 ```
 
-Alternatively, if you don't want to run it in Docker, simply use
+This will first run a few checks to make sure you have everything you need in-place, and then it will initialise your environment in preparation for the next steps, which include setting up experiment tracking and training your first model.
+
+Vertex:edge keeps its configuration in `edge.yaml`. This repo contains an example `edge.yaml`; this will be replaced by the initialisation step, so you'll want to commit your updated version of this file back to your forked repository.
+
+## Initialise data version control (DVC)
+
+Run
 
 ```
-./edge.py install
+./edge.py dvc init
 ```
 
-## Uninstall from GCP
-
-If for any reason you need to undo the installation, you can uninstall using
-
-```
-./edge.py uninstall
-```
+This will set up DVC locally, and also connect it to remote storage on GCP.
 
 <a name="running"></a>
 # Training your first model
 
-<!-- todo: general explanation of what we'll train, what dataset we'll use. Mention that we're not running the training locally, it's not designed to work this way -->
-So, you've forked this repository, you've configured and installed all of the tools on GCP, and finally you're ready to train a model - yay!
-
 The model that we're going to train is based on the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) dataset. Some important things to remember:
 
-* We don't store the datasets in Git, so before you can train the model, you'll need to download the dataset and initialise DVC (data version control).
+* We don't store the datasets in Git, so before you can train the model, you'll need to download the dataset and add it to DVC (data version control).
 * All training is done on Vertex. We currently don't support local training, i.e. running the training script on your own computer.
 
 ## Dataset seeding
 
-We need to download the original dataset, which is simple enough. But we also want to setup data version control, and we want to ensure that the data is backed to a central location.
-
-Having ran the installation script, you already have a Cloud Storage Bucket which will serve as the central location. We'll run two commands:
+You simple run two commands:
 
 ```
 ./seed_data.sh 
@@ -279,6 +267,12 @@ The `seed_data.sh` script downloads the dataset and registers it with DVC. Then,
 
 [comment]: <> (* Running pipelines, deploying model and webapp from local machine)
 
+## Initialising the model
+
+```
+./edge.py model init
+```
+
 ## Running the training pipeline
 
 ### Pull the dataset
@@ -287,14 +281,6 @@ Start by making sure you are using the most recent data version:
 
 ```
 dvc pull
-```
-
-### Build and push model serving Docker image
-
-We need to build a custom Docker image, which will be used for serving the model. The `edge` script takes care of building and pushing this to GCP:
-
-```
-./edge.py vertex build-docker
 ```
 
 ### Run training pipeline

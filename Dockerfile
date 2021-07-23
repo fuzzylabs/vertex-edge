@@ -1,21 +1,25 @@
-FROM python:3.8.0
+FROM python:3.9.6-slim
 
-# Downloading gcloud package
-RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-347.0.0-linux-x86_64.tar.gz > /tmp/google-cloud-sdk.tar.gz
+RUN apt update && apt install -y curl && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /usr/local/gcloud \
+# Install GCloud tools
+RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-347.0.0-linux-x86_64.tar.gz > /tmp/google-cloud-sdk.tar.gz \
+  && mkdir -p /usr/local/gcloud \
   && tar -C /usr/local/gcloud -xvf /tmp/google-cloud-sdk.tar.gz \
-  && /usr/local/gcloud/google-cloud-sdk/install.sh
+  && /usr/local/gcloud/google-cloud-sdk/install.sh \
+  && /usr/local/gcloud/google-cloud-sdk/bin/gcloud components install alpha --quiet \
+  && rm /tmp/google-cloud-sdk.tar.gz
 
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
 
-# Install k8s
+# Install Kubectl
 RUN curl -LO https://dl.k8s.io/release/v1.21.0/bin/linux/amd64/kubectl \
     && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
 # Install Helm
 RUN curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
 
+# Install Python dependencies
 WORKDIR /project/
 COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt

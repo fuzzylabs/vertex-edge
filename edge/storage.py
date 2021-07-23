@@ -1,9 +1,15 @@
+import sys
 from typing import Optional
 from serde import serialize, deserialize
 from dataclasses import dataclass
 from google.api_core.exceptions import NotFound, Forbidden
 from google.cloud import storage
 from .config import EdgeConfig
+from .exception import EdgeException
+from .tui import (
+    print_substep_not_done, print_substep_success, print_substep_failure, print_failure_explanation, print_substep,
+    clear_last_line, SubStepTUI
+)
 
 
 @deserialize
@@ -21,28 +27,24 @@ def get_bucket(project_id: str, bucket_name: str) -> Optional[storage.Bucket]:
     except NotFound:
         return None
     except Forbidden:
-        print(
-            f"Error: the bucket [{bucket_name}] exists, but you do not have permissions to access it. Maybe it "
-            f"belongs to another project? For more information on bucket naming see: "
-            f"https://cloud.google.com/storage/docs/naming-buckets"
+        raise EdgeException(
+            f"The bucket '{bucket_name}' exists, but you do not have permissions to access it. "
+            "Maybe it belongs to another project? "
+            "Please see the following guidelines for more information "
+            "https://cloud.google.com/storage/docs/naming-buckets"
         )
-        exit(1)
 
 
 def get_bucket_uri(project_id: str, bucket_name: str) -> Optional[str]:
-    print(f"## Checking if {bucket_name} bucket exists")
     bucket = get_bucket(project_id, bucket_name)
     if bucket is None:
         return None
-    print(f"Bucket found: gs://{bucket.name}/")
     return f"gs://{bucket.name}/"
 
 
 def create_bucket(project_id: str, region: str, bucket_name: str) -> str:
-    print(f"## Creating '{bucket_name}' bucket")
     client = storage.Client(project_id)
     bucket = client.create_bucket(bucket_or_name=bucket_name, project=project_id, location=region)
-    print(f"Bucket created: gs://{bucket.name}/")
     return f"gs://{bucket.name}/"
 
 
@@ -70,17 +72,21 @@ def tear_down_storage(_config: EdgeConfig, _state):
         )
 
 
-def setup_storage(_config: EdgeConfig) -> StorageBucketState:
-    print("# Setting up Google Storage")
-    bucket_path = get_bucket_uri(
-        _config.google_cloud_project.project_id,
-        _config.storage_bucket.bucket_name,
-    )
-    if bucket_path is None:
-        print(f"'{_config.storage_bucket.bucket_name}' bucket does not exist")
-        bucket_path = create_bucket(
-            _config.google_cloud_project.project_id,
-            _config.google_cloud_project.region,
-            _config.storage_bucket.bucket_name,
-        )
-    return StorageBucketState(bucket_path)
+def setup_storage(project_id: str, region: str, bucket_name: str) -> StorageBucketState:
+    with SubStepTUI(f"Checking if '{bucket_name}' exists") as sub_step:
+        try:
+            bucket_path = get_bucket_uri(
+                project_id,
+                bucket_name,
+            )
+            if bucket_path is None:
+                clear_last_line()
+                sub_step.update(message=f"'{bucket_name}' does not exist, creating it")
+                bucket_path = create_bucket(
+                    project_id,
+                    region,
+                    bucket_name,
+                )
+            return StorageBucketState(bucket_path)
+        except ValueError as e:
+            raise EdgeException(f"Unexpected error while setting up Storage bucket:\n{str(e)}")

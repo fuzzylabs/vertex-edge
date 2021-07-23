@@ -1,8 +1,11 @@
-from dataclasses import dataclass
-from typing import TypeVar, Type
+from dataclasses import dataclass, field
+from typing import TypeVar, Type, Optional, List
 from serde import serialize, deserialize
 from serde.yaml import from_yaml, to_yaml
 import os
+from contextlib import contextmanager
+
+from edge.tui import StepTUI, SubStepTUI
 
 
 @deserialize
@@ -33,9 +36,10 @@ class SacredConfig:
 @deserialize
 @serialize
 @dataclass
-class VertexConfig:
-    model_name: str
+class ModelConfig:
+    name: str
     prediction_server_image: str
+    endpoint_name: str
 
 
 @deserialize
@@ -55,9 +59,9 @@ T = TypeVar("T", bound="EdgeState")
 class EdgeConfig:
     google_cloud_project: GCProjectConfig
     storage_bucket: StorageBucketConfig
-    sacred: SacredConfig
-    vertex: VertexConfig
-    web_app: WebAppConfig
+    sacred: Optional[SacredConfig] = None
+    models: List[ModelConfig] = field(default_factory=list)
+    web_app: Optional[WebAppConfig] = None
 
     def save(self, path: str):
         with open(path, "w") as f:
@@ -73,4 +77,18 @@ class EdgeConfig:
     @classmethod
     def load_default(cls: Type[T]) -> T:
         config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../edge.yaml")
-        return EdgeConfig.load(config_path)
+        config = EdgeConfig.load(config_path)
+        return config
+
+    @classmethod
+    @contextmanager
+    def context(cls: Type[T], to_save: bool = False) -> T:
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../edge.yaml")
+        config = EdgeConfig.load(config_path)
+        try:
+            yield config
+        finally:
+            if to_save:
+                with StepTUI("Saving vertex:edge configuration", emoji="💾"):
+                    with SubStepTUI("Saving vertex:edge configuration"):
+                        config.save(config_path)
