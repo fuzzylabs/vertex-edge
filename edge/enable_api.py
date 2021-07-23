@@ -1,3 +1,7 @@
+"""
+Enabling Google Cloud APIs
+"""
+import json
 import os
 import subprocess
 from .exception import EdgeException
@@ -5,6 +9,12 @@ from .config import EdgeConfig
 
 
 def enable_api(_config: EdgeConfig):
+    """
+    Enable all necessary APIs (deprecated)
+
+    :param _config:
+    :return:
+    """
     print("# Enabling necessary Google Cloud APIs")
     project_id = _config.google_cloud_project.project_id
 
@@ -33,12 +43,59 @@ def enable_api(_config: EdgeConfig):
     os.system(f"gcloud services enable run.googleapis.com --project {project_id}")
 
 
-def enable_service_api(service: str, project_id: str):
+def is_service_api_enabled(service_name: str, project_id: str) -> bool:
+    """
+    Check if a [service_name] API is enabled
+
+    :param service_name:
+    :param project_id:
+    :return:
+    """
     try:
-        subprocess.check_output(
-            f"gcloud services enable {service} --project {project_id}",
+        enabled_services = json.loads(subprocess.check_output(
+            f"gcloud services list --enabled --project {project_id} --format json",
             shell=True,
             stderr=subprocess.STDOUT
-        )
-    except subprocess.CalledProcessError:
-        raise EdgeException(f"Unexpected error while enabling {service} API")
+        ).decode("utf-8"))
+        for service in enabled_services:
+            if service_name in service["name"]:
+                return True
+        return False
+    except subprocess.CalledProcessError as error:
+        parse_enable_service_api_error(service_name, error)
+        return False
+
+
+def enable_service_api(service: str, project_id: str):
+    """
+    Enable [service] API
+
+    :param service:
+    :param project_id:
+    :return:
+    """
+    if not is_service_api_enabled(service, project_id):
+        try:
+            subprocess.check_output(
+                f"gcloud services enable {service} --project {project_id}",
+                shell=True,
+                stderr=subprocess.STDOUT
+            )
+        except subprocess.CalledProcessError as error:
+            parse_enable_service_api_error(service, error)
+
+
+def parse_enable_service_api_error(service: str, error: subprocess.CalledProcessError):
+    """
+    Parse errors coming from `gcloud services` commands
+
+    :param service:
+    :param error:
+    :return:
+    """
+    output = error.output.decode("utf-8")
+    if output.startswith("ERROR: (gcloud.services.enable) PERMISSION_DENIED"):
+        raise EdgeException(f"Service '{service}' cannot be enabled because you have insufficient permissions "
+                            f"on Google Cloud")
+
+    raise error
