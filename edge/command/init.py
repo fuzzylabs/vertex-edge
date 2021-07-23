@@ -53,6 +53,22 @@ Happy herding! 🐏
                         "Update gcloud by running `gcloud components update`."
                     )
 
+                try:
+                    gcloud_alpha_version = get_gcloud_version("alpha")
+                    expected_gcloud_alpha_version_string = "2021.07.19"
+                    expected_gcloud_alpha_version = Version.from_string(expected_gcloud_alpha_version_string)
+                    if not gcloud_alpha_version.is_at_least(expected_gcloud_alpha_version):
+                        raise EdgeException(
+                            f"We found gcloud alpha component version {str(gcloud_alpha_version)}, "
+                            f"but we require at least {str(expected_gcloud_alpha_version)}. "
+                            "Update gcloud by running `gcloud components update`."
+                        )
+                except KeyError:
+                    raise EdgeException(
+                        f"We couldn't find the gcloud alpha components, "
+                        f"please install these by running `gcloud components install alpha`"
+                    )
+
             with SubStepTUI("Checking kubectl version") as sub_step:
                 kubectl_version = get_kubectl_version()
                 expected_kubectl_version_string = "v1.19.0"
