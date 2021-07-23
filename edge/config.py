@@ -75,8 +75,14 @@ class EdgeConfig:
         return from_yaml(EdgeConfig, yaml_str)
 
     @classmethod
+    def load_default(cls: Type[T]) -> T:
+        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../edge.yaml")
+        config = EdgeConfig.load(config_path)
+        return config
+
+    @classmethod
     @contextmanager
-    def load_default(cls: Type[T], to_save: bool = False) -> T:
+    def context(cls: Type[T], to_save: bool = False) -> T:
         config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../edge.yaml")
         config = EdgeConfig.load(config_path)
         try:

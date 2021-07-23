@@ -11,6 +11,7 @@ import time
 from typing import Optional
 from serde.yaml import to_yaml, from_yaml
 
+from edge.command.experiments.subparser import add_experiments_parser, run_experiments_actions
 from edge.command.init import edge_init
 from edge.command.dvc.subparser import add_dvc_parser, run_dvc_actions
 from edge.command.model.subparser import add_model_parser, run_model_actions
@@ -202,14 +203,14 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
             print("Vertex AI endpoint is kept")
         print()
 
-    if _state.sacred_state is not None:
+    if _state.sacred is not None:
         if input_yn(
             f"Do you want to destroy experiment tracker Kubernetes cluster (MongoDB+Omniboard): "
             f"{_config.sacred.gke_cluster_name}",
             "n",
         ):
             tear_down_sacred(_config, _state)
-            _state.sacred_state = None
+            _state.sacred = None
         else:
             print("Sacred cluster is kept")
         print()
@@ -318,7 +319,7 @@ def acquire_state(_config: EdgeConfig) -> (Optional[EdgeState], bool):
     if not _state_locked and not _lock_later:
         print("Cannot lock state, exiting...")
         sys.exit(1)
-    _state = EdgeState.load(config)
+    _state = EdgeState.context(config)
     atexit.register(safe_exit, config, _state)
     return _state, _lock_later
 
@@ -357,7 +358,7 @@ def webapp_handler(_config, _args):
         sys.exit(0)
     elif _args.action == "run":
         tag = os.environ.get("TAG") or "latest"
-        _state = EdgeState.load(config)
+        _state = EdgeState.context(config)
         path = "services/fashion-web"
         image_name = f"gcr.io/{config.google_cloud_project.project_id}/{config.web_app.webapp_server_image}"
         build_docker(path, image_name, tag)
@@ -381,6 +382,7 @@ if __name__ == "__main__":
 
     add_dvc_parser(subparsers)
     add_model_parser(subparsers)
+    add_experiments_parser(subparsers)
 
     # config_parser = subparsers.add_parser("config", help="Run configuration wizard")
     # install_parser = subparsers.add_parser(
@@ -417,6 +419,8 @@ if __name__ == "__main__":
         run_dvc_actions(args)
     elif args.command == "model":
         run_model_actions(args)
+    elif args.command == "experiment-tracker":
+        run_experiments_actions(args)
 
     raise NotImplementedError("The rest of the commands are not implemented")
     # Load configuration, and state (if exist) and lock state

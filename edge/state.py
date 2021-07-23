@@ -34,7 +34,7 @@ T = TypeVar("T", bound="EdgeState")
 @dataclass
 class EdgeState:
     models: Optional[Dict[str, ModelState]] = None
-    sacred_state: Optional[SacredState] = None
+    sacred: Optional[SacredState] = None
     storage: Optional[StorageBucketState] = None
 
     def save(self, _config: EdgeConfig):
@@ -43,9 +43,22 @@ class EdgeState:
         blob = storage.Blob(".edge_state/edge_state.yaml", bucket)
         blob.upload_from_string(to_yaml(self))
 
+
+    @classmethod
+    def load(cls: Type[T], _config: EdgeConfig) -> T:
+        client = storage.Client(project=_config.google_cloud_project.project_id)
+        bucket = client.bucket(_config.storage_bucket.bucket_name)
+        blob = storage.Blob(".edge_state/edge_state.yaml", bucket)
+
+        if blob.exists():
+            return from_yaml(EdgeState, blob.download_as_bytes(client).decode("utf-8"))
+        else:
+            raise EdgeException(f"State file is not found in '{_config.storage_bucket.bucket_name}' bucket."
+                                f"Initialise vertex:edge state by running `./edge.py init.`")
+
     @classmethod
     @contextmanager
-    def load(cls: Type[T], _config: EdgeConfig, to_lock: bool = False, to_save: bool = False) -> T:
+    def context(cls: Type[T], _config: EdgeConfig, to_lock: bool = False, to_save: bool = False) -> T:
         with StepTUI("Loading vertex:edge state", emoji="💾"):
             state = None
             locked = False
@@ -56,15 +69,7 @@ class EdgeState:
                                             _config.storage_bucket.bucket_name)
 
             with SubStepTUI("Loading state"):
-                client = storage.Client(project=_config.google_cloud_project.project_id)
-                bucket = client.bucket(_config.storage_bucket.bucket_name)
-                blob = storage.Blob(".edge_state/edge_state.yaml", bucket)
-
-                if blob.exists():
-                    state = from_yaml(EdgeState, blob.download_as_bytes(client).decode("utf-8"))
-                else:
-                    raise EdgeException(f"State file is not found in '{_config.storage_bucket.bucket_name}' bucket."
-                                        f"Initialise vertex:edge state by running `./edge.py init.`")
+                state = EdgeState.load(_config)
         try:
             yield state
         finally:

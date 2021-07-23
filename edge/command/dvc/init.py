@@ -29,9 +29,9 @@ Happy herding! 🐏
         failure_title,
         failure_message
     ) as tui:
-        with EdgeConfig.load_default() as config:
+        with EdgeConfig.context() as config:
             precommand_checks(config)
-            with EdgeState.load(config) as state:
+            with EdgeState.context(config) as state:
                 setup_dvc(
                     state.storage.bucket_path,
                     config.storage_bucket.dvc_store_directory
