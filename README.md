@@ -127,25 +127,6 @@ Here's a brief guide to how this project is organised:
 * [models](models) - each model has its own sub-directory under `models`, and within each model directory we have training code and the training pipeline.
 * [services](services) - models by themselves aren't useful without things that interact with the model. `services` contains deployable web services that interact with models.
 
-## Edge setup script
-
-Finally, we come to the vertex:edge tool (`edge.py`) whose purpose is to simplify setting up a machine learning project on Google Cloud Platform from scratch.
-
-It can:
-
-* Run a configuration wizard and save the resulting config for future use.
-* Set up all the necessary resources in GCP, namely
-    * Initialise DVC in the repository.
-    * Enable required Google Cloud APIs.
-    * Create a Storage bucket for dataset and model storage.
-    * Set up Vertex AI Endpoint for model deployment.
-    * Create Kubernetes cluster and set up Sacred / Omniboard on it for experiment tracking.
-* Build and push Docker images for a web app, and for model serving.
-* Deploy a web app to Cloud Run.
-* Deploy a trained model to Vertex AI.
-
-Next we'll look at how to use this script to setup an MLOps-ready project in GCP.
-
 <a name="installing"></a>
 # Installing on your GCP environment
 
@@ -264,19 +245,14 @@ This will set up DVC locally, and also connect it to remote storage on GCP.
 <a name="running"></a>
 # Training your first model
 
-<!-- todo: general explanation of what we'll train, what dataset we'll use. Mention that we're not running the training locally, it's not designed to work this way -->
-So, you've forked this repository, you've configured and installed all of the tools on GCP, and finally you're ready to train a model - yay!
-
 The model that we're going to train is based on the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) dataset. Some important things to remember:
 
-* We don't store the datasets in Git, so before you can train the model, you'll need to download the dataset and initialise DVC (data version control).
+* We don't store the datasets in Git, so before you can train the model, you'll need to download the dataset and add it to DVC (data version control).
 * All training is done on Vertex. We currently don't support local training, i.e. running the training script on your own computer.
 
 ## Dataset seeding
 
-We need to download the original dataset, which is simple enough. But we also want to setup data version control, and we want to ensure that the data is backed to a central location.
-
-Having ran the installation script, you already have a Cloud Storage Bucket which will serve as the central location. We'll run two commands:
+You simple run two commands:
 
 ```
 ./seed_data.sh 
@@ -291,6 +267,12 @@ The `seed_data.sh` script downloads the dataset and registers it with DVC. Then,
 
 [comment]: <> (* Running pipelines, deploying model and webapp from local machine)
 
+## Initialising the model
+
+```
+./edge.py model init
+```
+
 ## Running the training pipeline
 
 ### Pull the dataset
@@ -299,14 +281,6 @@ Start by making sure you are using the most recent data version:
 
 ```
 dvc pull
-```
-
-### Build and push model serving Docker image
-
-We need to build a custom Docker image, which will be used for serving the model. The `edge` script takes care of building and pushing this to GCP:
-
-```
-./edge.py vertex build-docker
 ```
 
 ### Run training pipeline
