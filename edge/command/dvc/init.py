@@ -14,9 +14,9 @@ Now you can version your data using DVC. See https://dvc.org/doc for more detail
 What's next? We suggest you proceed with:
 
   Train and deploy a model (see X section of the README for more details):
-    ./edge.py vertex init
+    ./edge.py model init
     dvc repro ...
-    ./edge.py vertex deploy
+    ./edge.py model deploy
 
 Happy herding! 🐏
     """.strip()
@@ -33,7 +33,7 @@ Happy herding! 🐏
             precommand_checks(config)
             with EdgeState.load(config) as state:
                 setup_dvc(
-                    state.storage_bucket_state.bucket_path,
+                    state.storage.bucket_path,
                     config.storage_bucket.dvc_store_directory
                 )
 

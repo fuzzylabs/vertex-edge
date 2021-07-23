@@ -13,7 +13,8 @@ from serde.yaml import to_yaml, from_yaml
 
 from edge.command.init import edge_init
 from edge.command.dvc.subparser import add_dvc_parser, run_dvc_actions
-from edge.config import EdgeConfig, GCProjectConfig, VertexConfig, SacredConfig, StorageBucketConfig, WebAppConfig
+from edge.command.model.subparser import add_model_parser, run_model_actions
+from edge.config import EdgeConfig, GCProjectConfig, ModelConfig, SacredConfig, StorageBucketConfig, WebAppConfig
 from edge.state import EdgeState
 from edge.sacred import setup_sacred, tear_down_sacred
 from edge.enable_api import enable_api, enable_service_api
@@ -35,7 +36,9 @@ from edge.exception import EdgeException
 import atexit
 import warnings
 import questionary
+import logging
 
+logging.disable(logging.WARNING)
 warnings.filterwarnings(
     "ignore",
     "Your application has authenticated using end user credentials from Google Cloud SDK without a quota project.",
@@ -88,7 +91,7 @@ def create_config(path: str) -> EdgeConfig:
     print()
     print("Configuring Vertex AI")
     model_name = input("Model name: ").strip()
-    vertex = VertexConfig(
+    vertex = ModelConfig(
         model_name=model_name,
         prediction_server_image=input_with_default(
             f"Vertex AI prediction server image [{model_name}-prediction]: ", f"{model_name}-prediction"
@@ -98,7 +101,7 @@ def create_config(path: str) -> EdgeConfig:
     print()
     print("Configuring Storage Bucket")
     storage_bucket = StorageBucketConfig(
-        bucket_name=input_with_default(f"Storage bucket name [{vertex.model_name}-model]: ", f"{model_name}-model"),
+        bucket_name=input_with_default(f"Storage bucket name [{vertex.name}-model]: ", f"{model_name}-model"),
         dvc_store_directory=input_with_default("DVC store directory within the bucket [dvcstore]: ", "dvcstore"),
         vertex_jobs_directory=input_with_default("Vertex AI jobs directory within the bucket [vertex]: ", "vertex"),
     )
@@ -211,10 +214,10 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
             print("Sacred cluster is kept")
         print()
 
-    if _state.storage_bucket_state is not None:
+    if _state.storage is not None:
         if input_yn(f"Do you want to destroy Google Storage bucket: {_config.storage_bucket.bucket_name}", "n"):
             tear_down_storage(_config, _state)
-            _state.storage_bucket_state = None
+            _state.storage = None
         else:
             keep_state = True
             print("Storage bucket is kept")
@@ -234,14 +237,6 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
         print(to_yaml(state))
         EdgeState.unlock(_config.google_cloud_project.project_id, _config.storage_bucket.bucket_name)
     sys.exit(0)
-
-
-def build_docker(docker_path, image_name, tag="latest"):
-    os.system(f"docker build -t {image_name}:{tag} {docker_path}")
-
-
-def push_docker(image_name, tag="latest"):
-    os.system(f"docker push {image_name}:{tag}")
 
 
 def deploy_cloud_run(_config: EdgeConfig, _state: EdgeState, tag: str):
@@ -352,43 +347,6 @@ def vertex_handler(_config, _args):
         sys.exit(0)
 
 
-def init_successful():
-    print()
-    questionary.print("Initialised successfully", style="fg:ansigreen")
-    print()
-    print(
-        """
-What's next? We suggest you proceed with:
-
-  Commit the new vertex:edge configuration to git:
-    git add edge.yaml && git commit -m "Initialise vertex:edge"
-
-  Configure an experiment tracker (optional):
-    ./edge.py experiment-tracker init [italic]
-
-  Configure data version control:
-    ./edge.py dvc init
-
-  Train and deploy a model (see X section of the README for more details):
-    ./edge.py vertex init
-    dvc repro ...
-    ./edge.py vertex deploy
-
-Happy herding! 🐏
-        """.strip()
-    )
-
-
-def init_failed():
-    print()
-    questionary.print("Initialisation failed", style="fg:ansired")
-    print()
-    questionary.print(
-        "See the errors above. For technical details see error log. See README for more details.",
-        style="fg:ansired"
-    )
-
-
 def webapp_handler(_config, _args):
     if _args.action == "build-docker":
         tag = os.environ.get("TAG") or "latest"
@@ -422,6 +380,7 @@ if __name__ == "__main__":
     init_parser = subparsers.add_parser("init")
 
     add_dvc_parser(subparsers)
+    add_model_parser(subparsers)
 
     # config_parser = subparsers.add_parser("config", help="Run configuration wizard")
     # install_parser = subparsers.add_parser(
@@ -454,9 +413,10 @@ if __name__ == "__main__":
     # Init does not require config or state
     if args.command == "init":
         edge_init()
-        sys.exit(0)
     elif args.command == "dvc":
         run_dvc_actions(args)
+    elif args.command == "model":
+        run_model_actions(args)
 
     raise NotImplementedError("The rest of the commands are not implemented")
     # Load configuration, and state (if exist) and lock state

@@ -8,7 +8,7 @@ from edge.exception import EdgeException
 from edge.storage import get_bucket, StorageBucketState
 from edge.config import EdgeConfig
 from edge.tui import StepTUI, SubStepTUI
-from typing import Type, TypeVar, Optional
+from typing import Type, TypeVar, Optional, Dict
 from contextlib import contextmanager
 
 
@@ -22,7 +22,7 @@ class SacredState:
 @deserialize
 @serialize
 @dataclass
-class VertexEndpointState:
+class ModelState:
     endpoint_resource_name: str
 
 
@@ -33,9 +33,9 @@ T = TypeVar("T", bound="EdgeState")
 @serialize
 @dataclass
 class EdgeState:
-    vertex_endpoint_state: Optional[VertexEndpointState] = None
+    models: Optional[Dict[str, ModelState]] = None
     sacred_state: Optional[SacredState] = None
-    storage_bucket_state: Optional[StorageBucketState] = None
+    storage: Optional[StorageBucketState] = None
 
     def save(self, _config: EdgeConfig):
         client = storage.Client(project=_config.google_cloud_project.project_id)

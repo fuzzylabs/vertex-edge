@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import TypeVar, Type, Optional
+from dataclasses import dataclass, field
+from typing import TypeVar, Type, Optional, List
 from serde import serialize, deserialize
 from serde.yaml import from_yaml, to_yaml
 import os
@@ -36,9 +36,10 @@ class SacredConfig:
 @deserialize
 @serialize
 @dataclass
-class VertexConfig:
-    model_name: str
+class ModelConfig:
+    name: str
     prediction_server_image: str
+    endpoint_name: str
 
 
 @deserialize
@@ -59,7 +60,7 @@ class EdgeConfig:
     google_cloud_project: GCProjectConfig
     storage_bucket: StorageBucketConfig
     sacred: Optional[SacredConfig] = None
-    vertex: Optional[VertexConfig] = None
+    models: List[ModelConfig] = field(default_factory=list)
     web_app: Optional[WebAppConfig] = None
 
     def save(self, path: str):
@@ -82,6 +83,6 @@ class EdgeConfig:
             yield config
         finally:
             if to_save:
-                with StepTUI("Saving configuration", emoji="💾"):
-                    with SubStepTUI("Saving configuration"):
+                with StepTUI("Saving vertex:edge configuration", emoji="💾"):
+                    with SubStepTUI("Saving vertex:edge configuration"):
                         config.save(config_path)

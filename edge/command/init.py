@@ -26,9 +26,9 @@ What's next? We suggest you proceed with:
     ./edge.py dvc init
 
   Train and deploy a model (see X section of the README for more details):
-    ./edge.py vertex init
+    ./edge.py model init
     dvc repro ...
-    ./edge.py vertex deploy
+    ./edge.py model deploy
 
 Happy herding! 🐏
         """.strip()
@@ -149,7 +149,7 @@ Happy herding! 🐏
 
         with StepTUI(message="Initialising Google Storage and vertex:edge state file", emoji="💾") as step:
             with SubStepTUI("Enabling Storage API") as sub_step:
-                enable_service_api("container.googleapis.com", gcloud_project)
+                enable_service_api("storage-component.googleapis.com", gcloud_project)
 
             with SubStepTUI("Configuring Google Storage bucket", status=TUIStatus.NEUTRAL) as sub_step:
                 sub_step.set_dirty()
@@ -173,7 +173,7 @@ Happy herding! 🐏
             storage_state = setup_storage(gcloud_project, gcloud_region, storage_bucket_name)
 
             _state = EdgeState(
-                storage_bucket_state=storage_state
+                storage=storage_state
             )
 
             _config = EdgeConfig(
