@@ -9,6 +9,7 @@ from google.api_core.exceptions import NotFound
 from google.cloud import secretmanager_v1
 from edge.state import SacredState, EdgeState
 from sacred.observers import MongoObserver
+from sacred.experiment import Experiment
 
 
 def create_cluster(project_id: str, region: str, cluster_name: str) -> Cluster:
@@ -254,7 +255,10 @@ def get_omniboard(_config: EdgeConfig) -> str:
     return f"http://{get_lb_ip('omniboard-lb')}:9000"
 
 
-def get_mongo_observer(config: EdgeConfig) -> MongoObserver:
+def track_experiment(config: EdgeConfig, state: EdgeState, experiment: Experiment):
+    if state.sacred is None:
+        print("Experiment tracker is not initialised in vertex:edge, the experiment will not be tracked")
+        return
     client = secretmanager_v1.SecretManagerServiceClient()
 
     project_id = config.google_cloud_project.project_id
@@ -263,4 +267,4 @@ def get_mongo_observer(config: EdgeConfig) -> MongoObserver:
     response = client.access_secret_version(name=secret_name)
 
     mongo_connection_string = response.payload.data.decode("UTF-8")
-    return MongoObserver(mongo_connection_string)
+    experiment.observers.append(MongoObserver(mongo_connection_string))

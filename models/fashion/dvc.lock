@@ -16,8 +16,8 @@ stages:
       md5: 25c81989df183df01b3e8a0aad5dffbe
       size: 29515
     - path: prepare-mnist.py
-      md5: ee5b9b95810856888c001fd05d587785
-      size: 423
+      md5: 48a8c95b961f1600c947573f07e419ba
+      size: 422
     outs:
     - path: ../../data/fashion-mnist/test.pickle
       md5: e86737aa7d8d8f5d588f91f0ed882e1f
@@ -25,3 +25,22 @@ stages:
     - path: ../../data/fashion-mnist/train.pickle
       md5: 1c7f87c1445bd183785e8b20c3d79369
       size: 94393209
+  train:
+    cmd: dvc push && PYTHONPATH=../../ python3 train-vertex.py
+    deps:
+    - path: ../../data/fashion-mnist/test.pickle
+      md5: e86737aa7d8d8f5d588f91f0ed882e1f
+      size: 15732309
+    - path: ../../data/fashion-mnist/train.pickle
+      md5: 1c7f87c1445bd183785e8b20c3d79369
+      size: 94393209
+    - path: train-vertex.py
+      md5: 30a2961dd7b8daf55f39046e5c3faa48
+      size: 3296
+    params:
+      params.yaml:
+        train.n_neighbours: 3
+    outs:
+    - path: vertex_model.json
+      md5: 932a6b634ab65a7cffc7356d87f778f7
+      size: 89

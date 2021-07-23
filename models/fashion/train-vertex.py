@@ -6,7 +6,7 @@ import yaml
 import uuid
 import os.path
 from sacred import Experiment
-from edge.sacred import get_mongo_observer
+from edge.sacred import track_experiment
 from edge.config import EdgeConfig
 from edge.state import EdgeState
 
@@ -14,7 +14,7 @@ _config = EdgeConfig.load_default()
 state = EdgeState.load(_config)
 
 ex = Experiment("fashion-mnist-model-training")
-ex.observers.append(get_mongo_observer(_config))
+track_experiment(_config, state, ex)
 
 
 @ex.config
@@ -27,7 +27,7 @@ def config():
     test_uri = dvc.api.get_url("data/fashion-mnist/test.pickle")
 
     # Define output bucket
-    vertex_dir = os.path.join(state.storage_bucket_state.bucket_path, _config.storage_bucket.vertex_jobs_directory)
+    vertex_dir = os.path.join(state.storage.bucket_path, _config.storage_bucket.vertex_jobs_directory)
     output_dir = os.path.join(vertex_dir, str(uuid.uuid4()))
 
     model_gs_link = os.path.join(output_dir, "model.joblib")
@@ -89,10 +89,10 @@ def main(
     # Create model on Vertex
     print("Creating model")
     serving_container_image_uri = (
-        f"gcr.io/{_config.google_cloud_project.project_id}/{_config.vertex.prediction_server_image}:{image_tag}"
+        f"{_config.models[0].prediction_server_image}:{image_tag}"
     )
     model = Model.upload(
-        display_name=_config.vertex.model_name,
+        display_name=_config.models[0].name,
         project=_config.google_cloud_project.project_id,
         location=_config.google_cloud_project.region,
         serving_container_image_uri=serving_container_image_uri,

@@ -23,7 +23,7 @@ What's next? We suggest you proceed with:
 
 Happy herding! 🐏
         """.strip()
-    failure_title = "DVC initialisation failed"
+    failure_title = "Model initialisation failed"
     failure_message = "See the errors above. For technical details see error log. See README for more details."
     with TUI(
             intro,
@@ -32,9 +32,9 @@ Happy herding! 🐏
             failure_title,
             failure_message
     ) as tui:
-        with EdgeConfig.load_default(to_save=True) as config:
+        with EdgeConfig.context(to_save=True) as config:
             precommand_checks(config)
-            with EdgeState.load(config, to_lock=True, to_save=True) as state:
+            with EdgeState.context(config, to_lock=True, to_save=True) as state:
                 # * Enable Vertex API
                 with StepTUI("Enabling required Google Cloud APIs", emoji="☁️"):
                     with SubStepTUI("Enabling Vertex AI API for model training and deployment"):
