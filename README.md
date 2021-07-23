@@ -248,23 +248,15 @@ This will first run a few checks to make sure you have everything you need in-pl
 
 Vertex:edge keeps its configuration in `edge.yaml`. This repo contains an example `edge.yaml`; this will be replaced by the initialisation step, so you'll want to commit your updated version of this file back to your forked repository.
 
-<!-- TODO: from here downwards needs to be updated to reflect the modular structure of the tool -->
+## Initialise data version control (DVC)
 
-## Install on GCP
-
-If you're happy with the configuration, you're now ready to install all the things:
+Run
 
 ```
-./edge.py install
+./edge.py dvc init
 ```
 
-## Uninstall from GCP
-
-If for any reason you need to undo the installation, you can uninstall using
-
-```
-./edge.py uninstall
-```
+This will set up DVC locally, and also connect it to remote storage on GCP.
 
 <a name="running"></a>
 # Training your first model
