@@ -93,7 +93,7 @@ gcloud config set project <your project ID>
 Finally, you'll need to configure a region. Please see the [GCP documentation](https://cloud.google.com/vertex-ai/docs/general/locations#feature-availability) to understand which regions are available for Vertex.
 
 ```
-gcloud config set region <region name>
+gcloud config set compute/region <region name>
 ```
 
 ## Initialising vertex:edge
@@ -181,8 +181,6 @@ And within the Bash shell run
 dvc pull
 dvc repro models/fashion/dvc.yaml
 ```
-
-
 
 ## Deploying your trained model
 
