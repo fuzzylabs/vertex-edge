@@ -38,11 +38,6 @@ Happy herding! 🐏
                 with StepTUI("Enabling required Google Cloud APIs", emoji="☁️"):
                     with SubStepTUI("Enabling Vertex AI API for model training and deployment"):
                         enable_service_api("aiplatform.googleapis.com", config.google_cloud_project.project_id)
-                    with SubStepTUI("Enabling Container Registry API for Docker images"):
-                        enable_service_api(
-                            "containerregistry.googleapis.com",
-                            config.google_cloud_project.project_id
-                        )
 
                 with StepTUI("Configuring model", emoji="⚙️"):
                     with SubStepTUI("Configuring model name", status=TUIStatus.NEUTRAL):
