@@ -17,7 +17,7 @@ def model_init():
     success_message = f"""
 What's next? We suggest you proceed with:
 
-  Train and deploy a model (see X section of the README for more details):
+  Train and deploy a model (see 'Training a model' section of the README for more details):
     dvc repro {get_model_dvc_pipeline()}
     ./edge.sh model deploy
 
