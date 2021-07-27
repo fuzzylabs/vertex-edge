@@ -21,7 +21,7 @@ What's next? We suggest you proceed with:
     git add edge.yaml && git commit -m "Initialise vertex:edge"
 
   Configure an experiment tracker (optional):
-    ./edge.sh experiment-tracker init
+    ./edge.sh experiments init
 
   Configure data version control:
     ./edge.sh dvc init

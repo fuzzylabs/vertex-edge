@@ -28,11 +28,13 @@ def experiments_init():
                 with StepTUI("Enabling required Google Cloud APIs", emoji="☁️"):
                     with SubStepTUI("Enabling Kubernetes Engine API for experiment tracking"):
                         enable_service_api("container.googleapis.com", config.google_cloud_project.project_id)
+                    with SubStepTUI("Enabling Secret Manager API for experiment tracking"):
+                        enable_service_api("secretmanager.googleapis.com", config.google_cloud_project.project_id)
                 with StepTUI("Configuring experiment tracking", emoji="⚙️"):
                     with SubStepTUI("Configuring Kubernetes cluster name on GCP", status=TUIStatus.NEUTRAL) as sub_step:
                         sub_step.add_explanation("If a name for an existing cluster is provided, this cluster "
-                                                 "will be used. Otherwise, vertex:edge will create a cluster with GKE "
-                                                 "auto-pilot.")
+                                                 "will be used. Otherwise, vertex:edge will create a new cluster with "
+                                                 "GKE auto-pilot.")
                         previous_cluster_name = (
                             config.experiments.gke_cluster_name if config.experiments is not None else "sacred"
                         )

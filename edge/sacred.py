@@ -5,7 +5,7 @@ import time
 from edge.config import EdgeConfig
 from google.cloud import container_v1
 from google.cloud.container_v1 import Cluster
-from google.api_core.exceptions import NotFound
+from google.api_core.exceptions import NotFound, PermissionDenied
 from google.cloud import secretmanager_v1
 
 from edge.exception import EdgeException
@@ -132,7 +132,7 @@ def install_mongodb() -> (str, str):
     internal_connection_string = f"mongodb://sacred:{password}@mongodb/sacred"
     external_connection_string = f"mongodb://sacred:{password}@{external_ip}:60000/sacred"
 
-    with SubStepTUI("Saving MongoDB kubernetes secrets") as sub_step:
+    with SubStepTUI("Saving MongoDB credentials into kubernetes secrets") as sub_step:
         try:
             subprocess.check_output(
                 "kubectl delete secret mongodb-connection", shell=True, stderr=subprocess.STDOUT
@@ -184,25 +184,29 @@ def install_omniboard() -> str:
 
 
 def save_mongo_to_secretmanager(project_id: str, secret_id: str, connection_string: str):
-    with SubStepTUI("Adding MongoDB connection string to Google Cloud Secret Manager"):
-        client = secretmanager_v1.SecretManagerServiceClient()
+    with SubStepTUI("Saving MongoDB credentials to Google Cloud Secret Manager") as sub_step:
         try:
-            client.access_secret_version(name=f"projects/{project_id}/secrets/{secret_id}/versions/latest")
-        except NotFound:
-            client.create_secret(
+            client = secretmanager_v1.SecretManagerServiceClient()
+            try:
+                client.access_secret_version(name=f"projects/{project_id}/secrets/{secret_id}/versions/latest")
+            except NotFound:
+                client.create_secret(
+                    request={
+                        "parent": f"projects/{project_id}",
+                        "secret_id": secret_id,
+                        "secret": {"replication": {"automatic": {}}},
+                    }
+                )
+
+            client.add_secret_version(
                 request={
-                    "parent": f"projects/{project_id}",
-                    "secret_id": secret_id,
-                    "secret": {"replication": {"automatic": {}}},
+                    "parent": f"projects/{project_id}/secrets/{secret_id}",
+                    "payload": {"data": connection_string.encode()},
                 }
             )
-
-        client.add_secret_version(
-            request={
-                "parent": f"projects/{project_id}/secrets/{secret_id}",
-                "payload": {"data": connection_string.encode()},
-            }
-        )
+        except PermissionDenied as exc:
+            sub_step.update(status=TUIStatus.FAILED)
+            sub_step.add_explanation(exc.message)
 
 
 def delete_mongo_to_secretmanager(_config: EdgeConfig):
