@@ -108,12 +108,22 @@ When you run this for the first time, it will first download a Docker image (`fu
 
 The initialisation step will first check that your GCP environment is setup correctly and it will confirm your choice of project name and region, so that you don't accidentally install things to the wrong GCP environment.
 
+It will ask you to choose a name for a cloud storage bucket. This bucket is used for tracking the vertex:edge state, for data version control and for model assets. Keep in mind that on GCP, storage bucket names are **globally unique**, so you might find that the name you want to use is already taken (in which case vertex:edge will give you an error message). For more information please see the [official GCP documentation](https://cloud.google.com/storage/docs/naming-buckets).
+
 ## Setting up data version control
 
 Next we'll set up data version control. This will do two things:
 
 * Configure DVC locally so that you can version your data.
 * Set up remote storage using a Google Cloud Bucket so that versioned data is stored centrally.
+
+Before we initialise DVC, we need to do one housekeeping step. Because this repository has been set up as a fully-working example, it's already got some DVC configuration files, but these files reference our GCP environment, so you'll need to clear these before setting DVC for your environment:
+
+```
+./clear_data.sh
+```
+
+With that out of the way, you can go ahead and run
 
 ```
 ./edge.sh dvc init
