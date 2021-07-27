@@ -112,22 +112,24 @@ It will ask you to choose a name for a cloud storage bucket. This bucket is used
 
 ## Setting up data version control
 
-Next we'll set up data version control. This will do two things:
-
-* Configure DVC locally so that you can version your data.
-* Set up remote storage using a Google Cloud Bucket so that versioned data is stored centrally.
-
-Before we initialise DVC, we need to do one housekeeping step. Because this repository has been set up as a fully-working example, it's already got some DVC configuration files, but these files reference our GCP environment, so you'll need to clear these before setting DVC for your environment:
+Before we set up data version control, we need to do one housekeeping step. Because this repository has been set up as a fully-working example, it's already got some DVC configuration files, but these files reference our GCP environment, so you'll need to clear these before setting DVC for your environment:
 
 ```
 ./clear_data.sh
 ```
 
-With that out of the way, you can go ahead and run
+With that out of the way, you can go ahead and run you can go ahead and run:
 
 ```
 ./edge.sh dvc init
 ```
+
+Which does two things:
+
+* Configure DVC locally so that you can version your data.
+* Set up remote storage using a Google Cloud Bucket so that versioned data is stored centrally.
+
+At this point, if you're not already familiar with DVC, it may be a good idea to familiarise yourself with this a little before continuing by reading the [DVC official documentation](https://dvc.org/doc). Of course, if you'd prefer to defer that to later, you can carry on to training and deploying the model.
 
 ## Training a model
 
@@ -192,9 +194,27 @@ dvc pull
 dvc repro models/fashion/dvc.yaml
 ```
 
+Note that `dvc pull` will pull down the latest version of the data; if you already have the latest version, this won't do anything, but it's good practice to do this before building a model.
+
+Then `dvc repro` runs the pipeline itself. This might take a little while to run, but you'll see periodic status updates as it progresses. You can also view the [job in progress in the Google Cloud Console](https://console.cloud.google.com/vertex-ai/training/custom-jobs).
+
+At the end of training remember to exit the Bash session with `exit`.
+
 ## Deploying your trained model
 
-.
+Having trained the model, you should see it listed in the [Google Cloud console under 'models'](https://console.cloud.google.com/vertex-ai/models). However, the model hasn't yet been deployed, so we can't interact with it.
+
+Deployment is done with just one command:
+
+```
+./edge.sh model deploy
+```
+
+At any point, you can get hold of the endpoint associated with the model by running
+
+```
+./edge.sh model get-endpoint
+```
 
 ## Tracking experiments
 

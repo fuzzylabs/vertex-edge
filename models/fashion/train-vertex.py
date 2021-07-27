@@ -80,7 +80,7 @@ def main(
     # Get results back
     print("Fetching the results")  # TODO see options for linking from gs, instead of downloading locally
 
-    client = storage.Client()
+    client = storage.Client(project=_config.google_cloud_project.project_id)
     metrics = json.loads(storage.Blob.from_string(metrics_gs_link, client).download_as_bytes())
 
     for metric in metrics:
