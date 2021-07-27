@@ -8,12 +8,13 @@ from edge.state import EdgeState
 from edge.storage import setup_storage
 from edge.tui import TUI, StepTUI, SubStepTUI, TUIStatus, qmark
 from edge.versions import get_gcloud_version, Version, get_kubectl_version, get_helm_version
+from edge.path import get_model_dvc_pipeline
 import questionary
 
 
 def edge_init():
     success_title = "Initialised successfully"
-    success_message = """
+    success_message = f"""
 What's next? We suggest you proceed with:
 
   Commit the new vertex:edge configuration to git:
@@ -27,13 +28,13 @@ What's next? We suggest you proceed with:
 
   Train and deploy a model (see X section of the README for more details):
     ./edge.py model init
-    dvc repro ...
+    dvc repro {get_model_dvc_pipeline()}
     ./edge.py model deploy
 
 Happy herding! 🐏
         """.strip()
     failure_title = "Initialisation failed"
-    failure_message = "See the errors above. For technical details see error log. See README for more details."
+    failure_message = "See the errors above. See README for more details."
     with TUI(
             "Initialising vertex:edge",
             success_title,

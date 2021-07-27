@@ -35,12 +35,12 @@ stages:
       md5: 1c7f87c1445bd183785e8b20c3d79369
       size: 94393209
     - path: train-vertex.py
-      md5: 30a2961dd7b8daf55f39046e5c3faa48
-      size: 3296
+      md5: 13815ab3d3b855d36180a84df14c1a92
+      size: 3204
     params:
       params.yaml:
         train.n_neighbours: 3
     outs:
     - path: vertex_model.json
-      md5: 932a6b634ab65a7cffc7356d87f778f7
+      md5: 9440ff150f17a13493975bcf4c9393c8
       size: 89

@@ -58,28 +58,34 @@ class EdgeState:
 
     @classmethod
     @contextmanager
-    def context(cls: Type[T], _config: EdgeConfig, to_lock: bool = False, to_save: bool = False) -> T:
-        with StepTUI("Loading vertex:edge state", emoji="💾"):
+    def context(
+            cls: Type[T],
+            _config: EdgeConfig,
+            to_lock: bool = False,
+            to_save: bool = False,
+            silent: bool = False
+    ) -> T:
+        with StepTUI("Loading vertex:edge state", emoji="💾", silent=silent):
             state = None
             locked = False
 
             if to_lock:
-                with SubStepTUI("Locking state"):
+                with SubStepTUI("Locking state", silent=silent):
                     locked = EdgeState.lock(_config.google_cloud_project.project_id,
                                             _config.storage_bucket.bucket_name)
 
-            with SubStepTUI("Loading state"):
+            with SubStepTUI("Loading state", silent=silent):
                 state = EdgeState.load(_config)
         try:
             yield state
         finally:
             if (to_save and state is not None) or locked:
-                with StepTUI("Saving vertex:edge state", emoji="💾"):
+                with StepTUI("Saving vertex:edge state", emoji="💾", silent=silent):
                     if to_save and state is not None:
-                        with SubStepTUI("Saving state"):
+                        with SubStepTUI("Saving state", silent=silent):
                             state.save(_config)
                     if locked:
-                        with SubStepTUI("Unlocking state"):
+                        with SubStepTUI("Unlocking state", silent=silent):
                             EdgeState.unlock(_config.google_cloud_project.project_id,
                                              _config.storage_bucket.bucket_name)
 

@@ -4,6 +4,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 import argparse
 import dill
+import joblib
 
 
 def wrap_open(path: str, mode: str = "r"):
@@ -50,7 +51,7 @@ def load_datasets(train_set_path, test_set_path):
 
 def save_results(model, metrics, model_output_dir, metrics_output_path):
     with wrap_open(os.path.join(model_output_dir, "model.joblib"), "wb") as f:
-        dill.dump(model, f)
+        joblib.dump(model, f)
 
     with wrap_open(metrics_output_path, "w") as f:
         json.dump(metrics, f, indent=2)

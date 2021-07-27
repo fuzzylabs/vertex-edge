@@ -95,10 +95,7 @@ def main(
         display_name=_config.models[0].name,
         project=_config.google_cloud_project.project_id,
         location=_config.google_cloud_project.region,
-        serving_container_image_uri=serving_container_image_uri,
-        serving_container_predict_route="/infer",
-        serving_container_health_route="/health",
-        serving_container_ports=[8000],
+        serving_container_image_uri="europe-docker.pkg.dev/cloud-aiplatform/prediction/sklearn-cpu.0-23:latest",
         artifact_uri=output_dir,
     )
 

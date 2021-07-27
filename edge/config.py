@@ -82,13 +82,13 @@ class EdgeConfig:
 
     @classmethod
     @contextmanager
-    def context(cls: Type[T], to_save: bool = False) -> T:
+    def context(cls: Type[T], to_save: bool = False, silent: bool = False) -> T:
         config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../edge.yaml")
         config = EdgeConfig.load(config_path)
         try:
             yield config
         finally:
             if to_save:
-                with StepTUI("Saving vertex:edge configuration", emoji="💾"):
-                    with SubStepTUI("Saving vertex:edge configuration"):
+                with StepTUI("Saving vertex:edge configuration", emoji="💾", silent=silent):
+                    with SubStepTUI("Saving vertex:edge configuration", silent=silent):
                         config.save(config_path)

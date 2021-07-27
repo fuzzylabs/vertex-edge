@@ -110,6 +110,7 @@ class TUI(object):
 
     def __enter__(self):
         questionary.print(self.intro, "bold underline")
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         if exc_type is None:
@@ -129,9 +130,10 @@ class TUI(object):
 
 
 class StepTUI(object):
-    def __init__(self, message: str, emoji: str = "*"):
+    def __init__(self, message: str, emoji: str = "*", silent: bool = False):
         self.message = message
         self.emoji = emoji
+        self.silent = silent
 
     def __enter__(self):
         self.print()
@@ -141,6 +143,8 @@ class StepTUI(object):
         return False  # Do not suppress
 
     def print(self):
+        if self.silent:
+            return
         questionary.print(f"{self.emoji} {self.message}", "bold")
 
 
@@ -161,12 +165,13 @@ class SubStepTUI(object):
         TUIStatus.WARNING: "⚠️"
     }
 
-    def __init__(self, message: str, status=TUIStatus.PENDING):
+    def __init__(self, message: str, status=TUIStatus.PENDING, silent: bool = False):
         self.message = message
         self.status = status
         self.written = False
         self._entered = False
         self._dirty = False
+        self.silent = silent
 
     def __enter__(self):
         self._entered = True
@@ -200,6 +205,8 @@ class SubStepTUI(object):
         return suppress
 
     def print(self):
+        if self.silent:
+            return
         if not self._entered:
             return
         if self.written and not self._dirty:

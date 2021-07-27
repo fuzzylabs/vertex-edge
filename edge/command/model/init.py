@@ -1,5 +1,4 @@
 import time
-
 from edge.command.common.precommand_check import precommand_checks
 from edge.config import EdgeConfig, ModelConfig
 from edge.docker import build_docker, push_docker
@@ -8,23 +7,24 @@ from edge.endpoint import setup_endpoint
 from edge.exception import EdgeException
 from edge.state import EdgeState
 from edge.tui import TUI, StepTUI, SubStepTUI, TUIStatus, qmark
+from edge.path import get_model_dvc_pipeline
 import questionary
 
 
 def model_init():
     intro = "Initialising model on Vertex AI"
     success_title = "Model initialised successfully"
-    success_message = """
+    success_message = f"""
 What's next? We suggest you proceed with:
 
   Train and deploy a model (see X section of the README for more details):
-    dvc repro ...
+    dvc repro {get_model_dvc_pipeline()}
     ./edge.py model deploy
 
 Happy herding! 🐏
         """.strip()
     failure_title = "Model initialisation failed"
-    failure_message = "See the errors above. For technical details see error log. See README for more details."
+    failure_message = "See the errors above. See README for more details."
     with TUI(
             intro,
             success_title,
@@ -35,7 +35,6 @@ Happy herding! 🐏
         with EdgeConfig.context(to_save=True) as config:
             precommand_checks(config)
             with EdgeState.context(config, to_lock=True, to_save=True) as state:
-                # * Enable Vertex API
                 with StepTUI("Enabling required Google Cloud APIs", emoji="☁️"):
                     with SubStepTUI("Enabling Vertex AI API for model training and deployment"):
                         enable_service_api("aiplatform.googleapis.com", config.google_cloud_project.project_id)
@@ -66,13 +65,6 @@ Happy herding! 🐏
                         config.models = [model_config]
 
                 image_name = config.models[0].prediction_server_image
-
-                with StepTUI("Preparing prediction server Docker image", emoji="🐳"):
-                    with SubStepTUI("Building Docker image"):
-                        build_docker("models/fashion", image_name)
-
-                    with SubStepTUI("Pushing Docker image to Google Container Registry"):
-                        push_docker(image_name)
 
                 endpoint_name = config.models[0].endpoint_name
 
