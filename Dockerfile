@@ -1,6 +1,9 @@
 FROM python:3.9.6-slim
 
-RUN apt update && apt install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apt update \
+  && apt install -y curl \
+  && apt install -y git \
+  && rm -rf /var/lib/apt/lists/*
 
 # Install GCloud tools
 RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-347.0.0-linux-x86_64.tar.gz > /tmp/google-cloud-sdk.tar.gz \
@@ -8,6 +11,7 @@ RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud
   && tar -C /usr/local/gcloud -xvf /tmp/google-cloud-sdk.tar.gz \
   && /usr/local/gcloud/google-cloud-sdk/install.sh \
   && /usr/local/gcloud/google-cloud-sdk/bin/gcloud components install alpha --quiet \
+  && echo "" \
   && rm /tmp/google-cloud-sdk.tar.gz
 
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin

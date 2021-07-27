@@ -10,3 +10,4 @@ else
 fi
 
 chown -R "$HOST_UID":"$HOST_GID" .dvc/
+chown -R "$HOST_UID":"$HOST_GID" data/
