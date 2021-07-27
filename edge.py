@@ -11,6 +11,7 @@ import time
 from typing import Optional
 from serde.yaml import to_yaml, from_yaml
 
+from edge.command.force_unlock import force_unlock
 from edge.command.experiments.subparser import add_experiments_parser, run_experiments_actions
 from edge.command.init import edge_init
 from edge.command.dvc.subparser import add_dvc_parser, run_dvc_actions
@@ -206,7 +207,7 @@ def tear_down_edge(_config: EdgeConfig, _state: EdgeState):
     if _state.sacred is not None:
         if input_yn(
             f"Do you want to destroy experiment tracker Kubernetes cluster (MongoDB+Omniboard): "
-            f"{_config.sacred.gke_cluster_name}",
+            f"{_config.experiments.gke_cluster_name}",
             "n",
         ):
             tear_down_sacred(_config, _state)
@@ -378,91 +379,24 @@ if __name__ == "__main__":
     )
 
     subparsers = parser.add_subparsers(title="command", dest="command", required=True)
-    init_parser = subparsers.add_parser("init")
+    init_parser = subparsers.add_parser("init", help="Initialise vertex:edge")
+    force_unlock_parser = subparsers.add_parser("force-unlock", help="Force unlock vertex:edge state")
 
     add_dvc_parser(subparsers)
     add_model_parser(subparsers)
     add_experiments_parser(subparsers)
 
-    # config_parser = subparsers.add_parser("config", help="Run configuration wizard")
-    # install_parser = subparsers.add_parser(
-    #     "install", help="Setup the project on Google Cloud, according to the configuration"
-    # )
-    # force_unlock_parser = subparsers.add_parser("force-unlock", help="Unlock state file explicitly")
-    # uninstall_parser = subparsers.add_parser(
-    #     "uninstall", help="Tear down Google Cloud infrastructure associated with this project (WARNING: DESTRUCTIVE)"
-    # )
-    # omniboard_parser = subparsers.add_parser("omniboard", help="Get Omniboard URL, if it is deployed")
-    #
-    # vertex_parser = subparsers.add_parser("vertex", help="Vertex AI related actions")
-    # vertex_subparsers = vertex_parser.add_subparsers(title="action", dest="action", required=True)
-    # vertex_subparsers.add_parser("get-endpoint", help="Get Vertex AI endpoint resource name")
-    # vertex_subparsers.add_parser(
-    #     "build-docker", help="Build Docker container for the prediction server and push it to Google Container Registry"
-    # )
-    # vertex_subparsers.add_parser("deploy", help="Deploy the trained model to Vertex AI")
-    #
-    # webapp_parser = subparsers.add_parser("webapp", help="Webapp related actions")
-    # webapp_subparsers = webapp_parser.add_subparsers(title="action", dest="action", required=True)
-    # webapp_subparsers.add_parser("run", help="Run the webapp locally in Docker")
-    # webapp_subparsers.add_parser(
-    #     "build-docker", help="Build Docker container for the webapp and push it to Google Container Registry"
-    # )
-    # webapp_subparsers.add_parser("deploy", help="Deploy the webapp to Cloud Run")
-
     args = parser.parse_args()
 
-    # Init does not require config or state
     if args.command == "init":
         edge_init()
+    elif args.command == "force-unlock":
+        force_unlock()
     elif args.command == "dvc":
         run_dvc_actions(args)
     elif args.command == "model":
         run_model_actions(args)
-    elif args.command == "experiment-tracker":
+    elif args.command == "experiments":
         run_experiments_actions(args)
 
     raise NotImplementedError("The rest of the commands are not implemented")
-    # Load configuration, and state (if exist) and lock state
-    # print("Loading configuration...")
-    # config = load_config(args.config)
-    # if config is None:
-    #     print("Configuration, does not exist creating...")
-    #     config = create_config(args.config)
-    # else:
-    #     print("Configuration is found")
-    #
-    # if args.command == "force-unlock":
-    #     EdgeState.unlock(config.google_cloud_project.project_id, config.storage_bucket.bucket_name)
-    #     sys.exit(0)
-    #
-    # # Commands with subactions
-    # if args.command == "vertex":
-    #     vertex_handler(config, args)
-    # elif args.command == "webapp":
-    #     webapp_handler(config, args)
-    #
-    # # Commands that do not require state lock
-    # if args.command == "config":
-    #     create_config(args.config)
-    #     sys.exit(0)
-    #
-    # # Command that require state and should lock it
-    # state, lock_later = acquire_state(config)
-    # if args.command == "install":
-    #     setup_edge(config, lock_later)
-    #     sys.exit(0)
-    # elif args.command == "omniboard":
-    #     if state is None or state.sacred_state is None:
-    #         print("Omniboard is not deployed")
-    #     else:
-    #         print(f"Omniboard: {state.sacred_state.external_omniboard_string}")
-    #     sys.exit(0)
-    # elif args.command == "uninstall":
-    #     if state is None:
-    #         print("Vertex:Edge state does not exist, nothing to uninstall.")
-    #     else:
-    #         tear_down_edge(config, state)
-    #     sys.exit(0)
-    # else:
-    #     raise Exception(f"{args.command} command is not supported")
