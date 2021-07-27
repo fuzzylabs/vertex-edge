@@ -21,15 +21,15 @@ What's next? We suggest you proceed with:
     git add edge.yaml && git commit -m "Initialise vertex:edge"
 
   Configure an experiment tracker (optional):
-    ./edge.py experiment-tracker init
+    ./edge.sh experiment-tracker init
 
   Configure data version control:
-    ./edge.py dvc init
+    ./edge.sh dvc init
 
   Train and deploy a model (see X section of the README for more details):
-    ./edge.py model init
+    ./edge.sh model init
     dvc repro {get_model_dvc_pipeline()}
-    ./edge.py model deploy
+    ./edge.sh model deploy
 
 Happy herding! 🐏
         """.strip()

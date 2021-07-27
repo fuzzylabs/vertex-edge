@@ -15,9 +15,9 @@ Now you can version your data using DVC. See https://dvc.org/doc for more detail
 What's next? We suggest you proceed with:
 
   Train and deploy a model (see X section of the README for more details):
-    ./edge.py model init
+    ./edge.sh model init
     dvc repro {get_model_dvc_pipeline()}
-    ./edge.py model deploy
+    ./edge.sh model deploy
 
 Happy herding! 🐏
     """.strip()

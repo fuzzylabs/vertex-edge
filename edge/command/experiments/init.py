@@ -61,9 +61,9 @@ def experiments_init():
                     f"at {sacred_state.external_omniboard_string}\n\n"
                     "What's next? We suggest you proceed with:\n\n"
                     "  Train and deploy a model (see X section of the README for more details):\n"
-                    "    ./edge.py model init\n"
+                    "    ./edge.sh model init\n"
                     f"    dvc repro {get_model_dvc_pipeline()}\n"
-                    "    ./edge.py model deploy\n\n"
+                    "    ./edge.sh model deploy\n\n"
                     "Happy herding! 🐏"
                 )
 
