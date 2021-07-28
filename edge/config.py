@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import TypeVar, Type, Optional, List
+from typing import TypeVar, Type, Optional, Dict
 from serde import serialize, deserialize
 from serde.yaml import from_yaml, to_yaml
 import os
@@ -50,7 +50,7 @@ class WebAppConfig:
     cloud_run_service_name: str
 
 
-T = TypeVar("T", bound="EdgeState")
+T = TypeVar("T", bound="EdgeConfig")
 
 
 @deserialize
@@ -60,7 +60,7 @@ class EdgeConfig:
     google_cloud_project: GCProjectConfig
     storage_bucket: StorageBucketConfig
     experiments: Optional[SacredConfig] = None
-    models: List[ModelConfig] = field(default_factory=list)
+    models: Dict[str, ModelConfig] = field(default_factory=dict)
     web_app: Optional[WebAppConfig] = None
 
     def save(self, path: str):
