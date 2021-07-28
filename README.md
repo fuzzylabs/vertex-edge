@@ -32,14 +32,193 @@ With this project we set out to address the following questions:
 
 ## Table of Contents
 
-* **[Concepts](#concepts)** - the underlying MLOps concepts in this example.
-* **[Installing on your GCP environment](#installing)**
-* **[Training your first model in GCP](#running)**
-* **[Setting up CI/CD with CircleCI](#circle)**
+* **[Getting started guide](#getting_started)**
+  * Pre-requisites
+  * Setting up a GCP environment
+  * Authenticating with GCP
+  * Initialising vertex:edge
+  * Setting up data version control
+  * Training a model
+  * Deploying your trained model
+  * Tracking experiments
+* **[Concepts](#concepts)** - a detailed guide to the underlying MLOps concepts used in this example.
+* **[Local development guide](#local_dev)**
 
 More documentation
 
 * **[Contributing](CONTRIBUTING.md)**
+
+<a name="getting_started"></a>
+# Getting started guide
+
+In this guide, we'll work through the fundamentals of the vertex:edge tool. By the end you'll have trained and deployed a model to GCP.
+
+In order to keep the pre-requisites small, all of the commands run on a Docker container.
+
+## Pre-requisites
+
+* [Docker](https://docs.docker.com/get-docker) (version 18 or greater).
+* [gcloud command line tool](https://cloud.google.com/sdk/docs/install).
+
+## Setting up GCP environment
+
+Now you'll need a [GCP account](https://cloud.google.com), so sign up for one if you haven't already done so.
+
+Within your GCP account, [create a new project](https://cloud.google.com/resource-manager/docs/creating-managing-projects), or you can use an existing project if you prefer.
+
+Make sure you [enable billing](https://cloud.google.com/billing/docs/how-to/modify-project) for your new project too.
+
+## Authenticating with GCP
+
+If you haven't got the `gcloud` command line tool, [install it now](https://cloud.google.com/sdk/docs/install).
+
+Then authenticate by running:
+
+```
+gcloud auth login
+```
+
+Followed by
+
+```
+gcloud auth application-default login
+```
+
+Next you need to configure the project ID. This should be the project which you created during 'Setting up GCP environment' above.
+
+```
+gcloud config set project <your project ID>
+```
+
+Finally, you'll need to configure a region. Please see the [GCP documentation](https://cloud.google.com/vertex-ai/docs/general/locations#feature-availability) to understand which regions are available for Vertex.
+
+```
+gcloud config set compute/region <region name>
+```
+
+## Initialising vertex:edge
+
+Before you can use vertex:edge to train models, you'll need to initialise it (this only needs to be done once).
+
+```
+./edge.sh init
+```
+
+When you run this for the first time, it will first download a Docker image (`fuzzylabs/edge`).
+
+The initialisation step will first check that your GCP environment is setup correctly and it will confirm your choice of project name and region, so that you don't accidentally install things to the wrong GCP environment.
+
+It will ask you to choose a name for a cloud storage bucket. This bucket is used for tracking the vertex:edge state, for data version control and for model assets. Keep in mind that on GCP, storage bucket names are **globally unique**, so you might find that the name you want to use is already taken (in which case vertex:edge will give you an error message). For more information please see the [official GCP documentation](https://cloud.google.com/storage/docs/naming-buckets).
+
+## Setting up data version control
+
+Before we set up data version control, we need to do one housekeeping step. Because this repository has been set up as a fully-working example, it's already got some DVC configuration files, but these files reference our GCP environment, so you'll need to clear these before setting DVC for your environment:
+
+```
+./clear_data.sh
+```
+
+With that out of the way, you can go ahead and run you can go ahead and run:
+
+```
+./edge.sh dvc init
+```
+
+Which does two things:
+
+* Configure DVC locally so that you can version your data.
+* Set up remote storage using a Google Cloud Bucket so that versioned data is stored centrally.
+
+At this point, if you're not already familiar with DVC, it may be a good idea to familiarise yourself with this a little before continuing by reading the [DVC official documentation](https://dvc.org/doc). Of course, if you'd prefer to defer that to later, you can carry on to training and deploying the model.
+
+## Training a model
+
+Once you've set up DVC, you're ready to train the example model.
+
+The model that we're going to train is based on the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) dataset. Some important things to remember:
+
+* We don't store the datasets in Git, so before you can train the model, you'll use a script to download the dataset and add it to DVC (data version control).
+* All training is done on Vertex. We currently don't support local training, i.e. running the training script on your own computer.
+
+### Seeding the dataset
+
+We'll run these commands inside the Docker container. You can get a Bash shell within the container by running:
+
+```
+./edge.sh bash
+```
+
+Within this shell you can run:
+
+```
+./seed_data.sh
+```
+
+Which downloads the fashion dataset, followed by:
+
+```
+dvc push
+```
+
+To push the newly downloaded data to data version control.
+
+Finally, exit the shell by running `exit`.
+
+### Initialising the model
+
+Before we can train a model, we need to initialise it. This is so that vertex:edge can keep track of the model's lifecycle. To initialise the fashion model, run:
+
+```
+./edge.sh model init
+```
+
+You'll be asked to provide a name for the model. You can enter anything here, for instance `fashion`.
+
+### Running the training pipeline
+
+Now that the model has been initialised we can run the training pipeline. We've used DVC to manage model pipelines. The pipeline does two things:
+
+1. Generate a training and test dataset using the original data that we downloaded earlier.
+2. Run a training job on GCP Vertex.
+
+We'll use the vertex:edge Bash shell once again here. Run:
+
+```
+./edge.sh bash
+```
+
+And within the Bash shell run
+
+```
+dvc pull
+dvc repro models/fashion/dvc.yaml
+```
+
+Note that `dvc pull` will pull down the latest version of the data; if you already have the latest version, this won't do anything, but it's good practice to do this before building a model.
+
+Then `dvc repro` runs the pipeline itself. This might take a little while to run, but you'll see periodic status updates as it progresses. You can also view the [job in progress in the Google Cloud Console](https://console.cloud.google.com/vertex-ai/training/custom-jobs).
+
+At the end of training remember to exit the Bash session with `exit`.
+
+## Deploying your trained model
+
+Having trained the model, you should see it listed in the [Google Cloud console under 'models'](https://console.cloud.google.com/vertex-ai/models). However, the model hasn't yet been deployed, so we can't interact with it.
+
+Deployment is done with just one command:
+
+```
+./edge.sh model deploy
+```
+
+At any point, you can get hold of the endpoint associated with the model by running
+
+```
+./edge.sh model get-endpoint
+```
+
+## Tracking experiments
+
+**TODO** experiment tracking isn't currently supported, but we'll be adding this soon. Please see Github issues for more details.
 
 <a name="concepts"></a>
 # Concepts
@@ -127,227 +306,5 @@ Here's a brief guide to how this project is organised:
 * [models](models) - each model has its own sub-directory under `models`, and within each model directory we have training code and the training pipeline.
 * [services](services) - models by themselves aren't useful without things that interact with the model. `services` contains deployable web services that interact with models.
 
-<a name="installing"></a>
-# Installing on your GCP environment
-
-If you haven't already done so, we recommend [forking this repository](https://github.com/fuzzylabs/vertex-edge/fork) before continuing. This is because you'll be changing some configuration files along the way, which you'll want to commit to your own fork.
-
-## Prerequisites 
-
-To begin with there are only three things that you need to install:
-
-* [pyenv](https://github.com/pyenv/pyen)
-* [gcloud command line tool](https://cloud.google.com/sdk/docs/install)
-
-## Setup Python environment
-
-To aid collaboration we want to make sure that every developer can reproduce the same development environment, which means everybody uses the same versions of Python and the same Python dependencies.
-
-### PyEnv
-
-To manage Python, we'll use [PyEnv](https://github.com/pyenv/pyenv). Follow the instructions for your operating system; once installed, PyEnv will download and manage of Python versions for you.
-
-The Python version for this project is kept in [.python-version](.python-version). PyEnv uses this file to discover which version of Python it should be using.
-
-#### When setting up for the first time
-
-You should run
-
-```
-pyenv install
-```
-
-Followed by
-
-```
-eval "$(pyenv init --path)"
-```
-
-After which, if you run `python --version`, it will match what's in [.python-version](.python-version).
-
-### Python dependencies (venv + PIP)
-
-With the correct version of Python set up, we'll use [Python venv](https://docs.python.org/3/library/venv.html) to provide an isolated Python environment, and [PIP](https://pypi.org/project/pip) to install and manage Python dependencies.
-
-**First, please ensure you have the most recent version of PIP installed** by running
-
-```
-pip install --upgrade pip
-```
-
-Then setup the environment and install dependencies:
-
-```
-python -m venv env/
-source env/bin/activate
-pip install -r requirements.txt
-```
-
-## Setting up GCP environment
-
-Now you'll need a [GCP account](https://cloud.google.com), so sign up for one if you haven't already done so.
-
-Within your GCP account, [create a new project](https://cloud.google.com/resource-manager/docs/creating-managing-projects), or you can use an existing project if you prefer.
-
-Make sure you [enable billing](https://cloud.google.com/billing/docs/how-to/modify-project) for your new project too.
-
-## Authenticate with GCP
-
-If you haven't got the `gcloud` command line tool, [install it now](https://cloud.google.com/sdk/docs/install).
-
-Then authenticate by running:
-
-```
-gcloud auth login
-```
-
-Followed by
-
-```
-gcloud auth application-default login
-```
-
-Next you need to configure the project ID. This should be the project which you created during 'Setting up GCP environment' above.
-
-```
-gcloud config set project <your project ID>
-```
-
-Finally, you'll need to configure a region. Please see the [GCP documentation](https://cloud.google.com/vertex-ai/docs/general/locations#feature-availability) to understand which regions are available for Vertex.
-
-```
-gcloud config set region <region name>
-```
-
-## Initialise vertex:edge for your GCP environment
-
-Run
-
-```
-./clear_data.sh
-./edge.py init
-```
-
-This will first run a few checks to make sure you have everything you need in-place, and then it will initialise your environment in preparation for the next steps, which include setting up experiment tracking and training your first model.
-
-Vertex:edge keeps its configuration in `edge.yaml`. This repo contains an example `edge.yaml`; this will be replaced by the initialisation step, so you'll want to commit your updated version of this file back to your forked repository.
-
-## Initialise data version control (DVC)
-
-Run
-
-```
-./edge.py dvc init
-```
-
-This will set up DVC locally, and also connect it to remote storage on GCP.
-
-<a name="running"></a>
-# Training your first model
-
-The model that we're going to train is based on the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) dataset. Some important things to remember:
-
-* We don't store the datasets in Git, so before you can train the model, you'll need to download the dataset and add it to DVC (data version control).
-* All training is done on Vertex. We currently don't support local training, i.e. running the training script on your own computer.
-
-## Dataset seeding
-
-You simple run two commands:
-
-```
-./seed_data.sh 
-dvc push
-```
-
-The `seed_data.sh` script downloads the dataset and registers it with DVC. Then, `dvc push` will push that data up to the Cloud Storage bucket (similar to `git push`).
-
-<!-- link to DVC docs here for remote storage management -->
-
-[comment]: <> (* CircleCI setup)
-
-[comment]: <> (* Running pipelines, deploying model and webapp from local machine)
-
-## Initialising the model
-
-```
-./edge.py model init
-```
-
-## Running the training pipeline
-
-### Pull the dataset
-
-Start by making sure you are using the most recent data version:
-
-```
-dvc pull
-```
-
-### Run training pipeline
-
-Earlier we mentioned that we use DVC to provide the model training pipeline. This pipeline will execute the model training step on Vertex:
-
-```
-dvc repro models/fashion/dvc.yaml
-```
-
-After having ran this, a custom training job will appear under https://console.cloud.google.com/vertex-ai/training/custom-jobs.
-
-<!-- TODO: add docs link for DVC pipelines -->
-
-## Viewing experiments with the experiment tracker
-
-Each run of the training pipeline gets logged to the experiment tracker. To view experiments, you'll first need to get the dashboard URL:
-
-```
-./edge.py omniboard
-```
-
-If you visit this URL in a browser you will see the history of all experiments.
-
-## Deploying the trained model
-
-You can now deploy the trained model to Vertex:
-
-```
-./edge.py vertex deploy
-```
-
-Having ran this, a model will be available under https://console.cloud.google.com/vertex-ai/models
-
-## Using the demo web app
-
-The demo web app is a simple web application that is intended to work with the fashion model that we trained before. There are two ways to run it: you can run it in Docker locally, or deploy it to GCP Cloud Run.
-
-### Run locally in docker
-
-```
-./edge.py webapp run
-```
-
-### Deploy to Cloud Run
-
-```
-./edge.py webapp build-docker
-./edge.py webapp deploy
-```
-
-<a name="circle"></a>
-# CircleCI setup
-
-## Activate project in CircleCI
-
-Follow [the instructions](https://circleci.com/docs/2.0/getting-started/?section=getting-started#setting-up-circleci)
-
-## Add Google Cloud service account 
-
-Follow [the instructions](https://circleci.com/docs/2.0/google-auth/#creating-and-storing-a-service-account)
-
-This service account must have the following roles:
-
-* Vertex AI user
-* Service Account User
-* Cloud Run Admin
-* Secret Manager Secret Accessor
-* Storage Admin
-* GKE admin
+<a name="local_dev"></a>
+# Local development guide

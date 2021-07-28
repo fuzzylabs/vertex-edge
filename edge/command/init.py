@@ -56,7 +56,7 @@ Happy herding! 🐏
 
                 try:
                     gcloud_alpha_version = get_gcloud_version("alpha")
-                    expected_gcloud_alpha_version_string = "2021.07.19"
+                    expected_gcloud_alpha_version_string = "2021.06.00"
                     expected_gcloud_alpha_version = Version.from_string(expected_gcloud_alpha_version_string)
                     if not gcloud_alpha_version.is_at_least(expected_gcloud_alpha_version):
                         raise EdgeException(
