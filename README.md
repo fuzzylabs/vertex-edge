@@ -207,11 +207,36 @@ Deployment is done with just one command:
 ./edge.sh model deploy
 ```
 
-At any point, you can get hold of the endpoint associated with the model by running
+To interact with a model, you need to know its _endpoint_. You can get hold of the endpoint associated with the model by running
 
 ```
 ./edge.sh model get-endpoint
 ```
+
+## Testing the model with some sample payloads
+
+Now we'll do some inference using the deployed model. The file `test_payload.json` contains three images. The images are stored as numerical arrays, and for each image we expect the model to give us a classification.
+
+The script `test_endpoint.sh` will use `test_payload.json` to test the model. You can run:
+
+```
+./test_endpoint.sh
+```
+
+You should get back the following response
+
+```
+{
+  "predictions": [
+    9,
+    2,
+    1
+  ],
+  "deployedModelId": "6884244611645046784"
+}
+```
+
+The numbers `9`, `2`, `1` represent the predicted classes for the three images. The model itself just gives us numbers, but these correspond to `Ankle boot`, `Trouser`, `T-shirt/top`.
 
 ## Tracking experiments
 
