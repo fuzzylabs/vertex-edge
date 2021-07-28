@@ -190,11 +190,8 @@ We'll use the vertex:edge Bash shell once again here. Run:
 And within the Bash shell run
 
 ```
-dvc pull
 dvc repro models/fashion/dvc.yaml
 ```
-
-Note that `dvc pull` will pull down the latest version of the data; if you already have the latest version, this won't do anything, but it's good practice to do this before building a model.
 
 Then `dvc repro` runs the pipeline itself. This might take a little while to run, but you'll see periodic status updates as it progresses. You can also view the [job in progress in the Google Cloud Console](https://console.cloud.google.com/vertex-ai/training/custom-jobs).
 
