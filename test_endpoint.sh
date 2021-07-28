@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ENDPOINT=$(./edge.sh model get-endpoint)
-REGION=$(./edge.sh misc get-region)
+REGION=$(./edge.sh config get-region)
 curl \
 -X POST \
 -H "Authorization: Bearer $(gcloud auth print-access-token)" \
