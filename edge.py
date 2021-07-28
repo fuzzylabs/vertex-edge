@@ -2,14 +2,15 @@
 vertex:edge CLI tool
 """
 import argparse
+import warnings
+import logging
 
 from edge.command.force_unlock import force_unlock
 from edge.command.experiments.subparser import add_experiments_parser, run_experiments_actions
 from edge.command.init import edge_init
 from edge.command.dvc.subparser import add_dvc_parser, run_dvc_actions
+from edge.command.misc.subparser import add_misc_parser, run_misc_actions
 from edge.command.model.subparser import add_model_parser, run_model_actions
-import warnings
-import logging
 
 logging.disable(logging.WARNING)
 warnings.filterwarnings(
@@ -31,6 +32,7 @@ if __name__ == "__main__":
     add_dvc_parser(subparsers)
     add_model_parser(subparsers)
     add_experiments_parser(subparsers)
+    add_misc_parser(subparsers)
 
     args = parser.parse_args()
 
@@ -44,5 +46,7 @@ if __name__ == "__main__":
         run_model_actions(args)
     elif args.command == "experiments":
         run_experiments_actions(args)
+    elif args.command == "misc":
+        run_misc_actions(args)
 
     raise NotImplementedError("The rest of the commands are not implemented")
