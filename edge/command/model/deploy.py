@@ -25,7 +25,7 @@ def model_deploy(model_name: str):
                 failure_message
         ) as tui:
             precommand_checks(config)
-            with EdgeState.context(config, to_lock=True) as state:
+            with EdgeState.context(config, to_lock=True, to_save=True) as state:
                 with StepTUI("Checking model configuration", emoji="🐏"):
                     with SubStepTUI("Checking that the model is initialised"):
                         if model_name not in config.models:
@@ -46,6 +46,8 @@ def model_deploy(model_name: str):
                             model_dict = json.load(file)
                         model_resource_name = model_dict["model_name"]
                 vertex_deploy(endpoint_resource_name, model_resource_name, model_name)
+
+                state.models[model_name].deployed_model_resource_name = model_resource_name
 
                 short_endpoint_resource_name = "/".join(endpoint_resource_name.split("/")[2:])
                 tui.success_message = (

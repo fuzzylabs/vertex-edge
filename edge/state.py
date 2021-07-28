@@ -24,6 +24,7 @@ class SacredState:
 @dataclass
 class ModelState:
     endpoint_resource_name: str
+    deployed_model_resource_name: Optional[str] = None
 
 
 T = TypeVar("T", bound="EdgeState")
