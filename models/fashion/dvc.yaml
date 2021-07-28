@@ -16,6 +16,7 @@ stages:
     - ../../data/fashion-mnist/test.pickle
     - ../../data/fashion-mnist/train.pickle
     - train-vertex.py
+    - train.py
     outs:
       - vertex_model.json
     params:

@@ -30,12 +30,12 @@ def model_deploy():
                     with SubStepTUI("Checking that the model is initialised"):
                         if len(config.models) == 0:
                             raise EdgeException("Model has not been initialised. "
-                                                "Run `./edge.py model init` to initialise.")
+                                                "Run `./edge.sh model init` to initialise.")
                         model_name = config.models[0].name
                         if state.models is None or state.models[model_name] is None:
                             raise EdgeException("Model is missing from vertex:edge state. "
                                                 "This might mean that the model has not been initialised. "
-                                                "Run `./edge.py model init` to initialise.")
+                                                "Run `./edge.sh model init` to initialise.")
                         endpoint_resource_name = state.models[model_name].endpoint_resource_name
                     with SubStepTUI("Checking that the model has been trained"):
                         if not os.path.exists("models/fashion/vertex_model.json"):

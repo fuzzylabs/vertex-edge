@@ -1,3 +1,6 @@
+experiments:
+  gke_cluster_name: sacred
+  mongodb_connection_string_secret: sacred-mongodb-connection-string
 google_cloud_project:
   project_id: fuzzylabs
   region: europe-west4
@@ -5,7 +8,6 @@ models:
 - endpoint_name: fashion-endpoint
   name: fashion
   prediction_server_image: gcr.io/fuzzylabs/fashion-prediction
-sacred: null
 storage_bucket:
   bucket_name: fashion-mnist-model
   dvc_store_directory: dvcstore

@@ -59,7 +59,7 @@ T = TypeVar("T", bound="EdgeState")
 class EdgeConfig:
     google_cloud_project: GCProjectConfig
     storage_bucket: StorageBucketConfig
-    sacred: Optional[SacredConfig] = None
+    experiments: Optional[SacredConfig] = None
     models: List[ModelConfig] = field(default_factory=list)
     web_app: Optional[WebAppConfig] = None
 

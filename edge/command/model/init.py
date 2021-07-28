@@ -17,9 +17,9 @@ def model_init():
     success_message = f"""
 What's next? We suggest you proceed with:
 
-  Train and deploy a model (see X section of the README for more details):
+  Train and deploy a model (see 'Training a model' section of the README for more details):
     dvc repro {get_model_dvc_pipeline()}
-    ./edge.py model deploy
+    ./edge.sh model deploy
 
 Happy herding! 🐏
         """.strip()
@@ -38,11 +38,6 @@ Happy herding! 🐏
                 with StepTUI("Enabling required Google Cloud APIs", emoji="☁️"):
                     with SubStepTUI("Enabling Vertex AI API for model training and deployment"):
                         enable_service_api("aiplatform.googleapis.com", config.google_cloud_project.project_id)
-                    with SubStepTUI("Enabling Container Registry API for Docker images"):
-                        enable_service_api(
-                            "containerregistry.googleapis.com",
-                            config.google_cloud_project.project_id
-                        )
 
                 with StepTUI("Configuring model", emoji="⚙️"):
                     with SubStepTUI("Configuring model name", status=TUIStatus.NEUTRAL):
