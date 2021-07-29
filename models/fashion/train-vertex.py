@@ -89,10 +89,10 @@ def main(
     # Create model on Vertex
     print("Creating model")
     serving_container_image_uri = (
-        f"{_config.models[0].prediction_server_image}:{image_tag}"
+        f"{_config.models['fashion'].prediction_server_image}:{image_tag}"
     )
     model = Model.upload(
-        display_name=_config.models[0].name,
+        display_name=_config.models["fashion"].name,
         project=_config.google_cloud_project.project_id,
         location=_config.google_cloud_project.region,
         serving_container_image_uri="europe-docker.pkg.dev/cloud-aiplatform/prediction/sklearn-cpu.0-23:latest",
