@@ -78,23 +78,25 @@ Then authenticate by running:
 gcloud auth login
 ```
 
-Followed by
-
-```
-gcloud auth application-default login
-```
-
 Next you need to configure the project ID. This should be the project which you created during 'Setting up GCP environment' above.
 
 ```
 gcloud config set project <your project ID>
 ```
 
-Finally, you'll need to configure a region. Please see the [GCP documentation](https://cloud.google.com/vertex-ai/docs/general/locations#feature-availability) to understand which regions are available for Vertex.
+You'll also need to configure a region. Please see the [GCP documentation](https://cloud.google.com/vertex-ai/docs/general/locations#feature-availability) to understand which regions are available for Vertex.
 
 ```
 gcloud config set compute/region <region name>
 ```
+
+Finally, you need to get application default credentials by running:
+
+```
+gcloud auth application-default login
+```
+
+
 
 ## Initialising vertex:edge
 
