@@ -1,2 +1,3 @@
 train:
   n_neighbours: 3
+  is_local: true

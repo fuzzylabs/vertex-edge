@@ -11,13 +11,14 @@ stages:
     - ../../data/fashion-mnist/test.pickle
     - ../../data/fashion-mnist/train.pickle
   train:
-    cmd: dvc push && PYTHONPATH=../../ python3 train-vertex.py
+    cmd: dvc push && PYTHONPATH=../../ python3 train-wrapper.py
     deps:
     - ../../data/fashion-mnist/test.pickle
     - ../../data/fashion-mnist/train.pickle
-    - train-vertex.py
+    - train-wrapper.py
     - train.py
     outs:
-      - vertex_model.json
+      - trained_model.json
     params:
     - train.n_neighbours
+    - train.is_local

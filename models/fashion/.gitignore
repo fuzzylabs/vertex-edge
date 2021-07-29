@@ -1,1 +1,3 @@
-/vertex_model.json
+/trained_model.json
+model.joblib
+metrics.json

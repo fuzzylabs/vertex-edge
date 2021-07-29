@@ -38,8 +38,9 @@ class SacredConfig:
 @dataclass
 class ModelConfig:
     name: str
-    prediction_server_image: str
     endpoint_name: str
+    training_container_image_uri: str = "europe-docker.pkg.dev/cloud-aiplatform/training/scikit-learn-cpu.0-23:latest"
+    serving_container_image_uri: str = "europe-docker.pkg.dev/cloud-aiplatform/prediction/sklearn-cpu.0-23:latest"
 
 
 @deserialize

@@ -58,6 +58,15 @@ def save_results(model, metrics, model_output_dir, metrics_output_path):
 
 
 if __name__ == "__main__":
+    """
+    Assumptions:
+     
+    * the script takes two datasets (training and testing)
+    * the script takes model-metrics-path as the parameter and outputs to `./metrics.json` by default
+    * the script saves all the relevant metrics to model-metrics-path
+    * the script produces `model.joblib` artifact and puts it to model-dir
+    * the script accepts local paths and gs:// paths
+    """
     parser = argparse.ArgumentParser("Train a model")
     parser.add_argument("train_set_path")
     parser.add_argument("test_set_path")
