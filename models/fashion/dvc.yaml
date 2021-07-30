@@ -21,4 +21,4 @@ stages:
       - trained_model.json
     params:
     - train.n_neighbours
-    - train.is_local
+    - train.is_vertex

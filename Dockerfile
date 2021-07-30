@@ -23,3 +23,12 @@ RUN curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 |
 WORKDIR /project/
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install edge
+COPY setup.py setup.py
+COPY MANIFEST.in MANIFEST.in
+COPY edge edge
+COPY src/ src/
+
+RUN ./setup.py build
+RUN ./setup.py install
