@@ -26,7 +26,7 @@ stages:
       md5: 1c7f87c1445bd183785e8b20c3d79369
       size: 94393209
   train:
-    cmd: dvc push && PYTHONPATH=../../ python3 train-wrapper.py
+    cmd: dvc push && python3 train-wrapper.py
     deps:
     - path: ../../data/fashion-mnist/test.pickle
       md5: e86737aa7d8d8f5d588f91f0ed882e1f
@@ -35,14 +35,14 @@ stages:
       md5: 1c7f87c1445bd183785e8b20c3d79369
       size: 94393209
     - path: train-wrapper.py
-      md5: 96ced7cf6b1a7d8a82d64190fc404a96
-      size: 2448
+      md5: 25cdd834ab2d6691d8e9cd0fce871817
+      size: 5251
     - path: train.py
       md5: 68150a95b1223375445f86eb4d9452e5
       size: 2764
     params:
       params.yaml:
-        train.is_local: true
+        train.is_vertex: false
         train.n_neighbours: 3
     outs:
     - path: trained_model.json

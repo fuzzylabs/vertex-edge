@@ -16,34 +16,15 @@ from sklearn.metrics import accuracy_score
 from edge.sacred import track_experiment
 from edge.config import EdgeConfig
 from edge.state import EdgeState
-from edge.training.sacred import to_sacred_params_for_vertex, to_sacred_with_statement
+from edge.training.sacred import to_sacred_params_for_vertex
 from edge.training.training import run_job_on_vertex, TrainedModel
+from edge.training.utils import wrap_open, get_vertex_paths
 
 _config = EdgeConfig.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../edge.yaml"))
 state = EdgeState.load(_config)
 
 ex = Experiment("fashion-mnist-model-training")
 track_experiment(_config, state, ex)
-
-
-def get_vertex_paths():
-    staging_path = os.path.join(state.storage.bucket_path, _config.storage_bucket.vertex_jobs_directory)
-    output_path = os.path.join(staging_path, str(uuid.uuid4()))
-
-    metrics_path = os.path.join(output_path, "metrics.json")
-    return staging_path, output_path, metrics_path
-
-
-def wrap_open(path: str, mode: str = "r"):
-    if path.startswith("gs://"):
-        from google.cloud import storage
-        from google.cloud.storage.blob import Blob
-
-        client = storage.Client()
-
-        return Blob.from_string(path, client).open(mode=mode)
-    else:
-        return open(path, mode=mode)
 
 
 def train_model(train_dataset, n_neighbors):
@@ -100,61 +81,61 @@ def config():
     model_dir = "./"
     model_metrics_path = "./metrics.json"
 
-    # Define output bucket for Vertex
-    staging_path, output_path, metrics_path = get_vertex_paths()
 
-
-def vertex_wrapper(func, requirements: Optional[List[str]] = None):
+def vertex_wrapper(requirements: Optional[List[str]] = None):
     if requirements is None:
         requirements = []
 
-    def inner(is_vertex: bool, *args, **kwargs):
-        if is_vertex:
-            print("TODO Run on vertex")
-            training_script_args = to_sacred_params_for_vertex(kwargs)
-            print("with ", " ".join(training_script_args))
-            # run_job_on_vertex(
-            #     kwargs["_run"],
-            #     _config.models[kwargs["model_name"]],
-            #     _config.google_cloud_project,
-            #     requirements=requirements,
-            #     training_script_args=[
-            #         "--model-dir",
-            #         output_path,
-            #         "--model-metrics-path",
-            #         metrics_path,
-            #         "--n-neigbours",
-            #         str(params["n_neighbours"]),
-            #         train_uri,
-            #         test_uri,
-            #     ],
-            #     staging_bucket=staging_path,
-            #     metrics_gs_link=metrics_path,
-            #     output_dir=output_path,
-            # )
-        else:
-            func(*args, **kwargs)
+    def decorator(func):
+        def inner(is_vertex: bool, *args, **kwargs):
+            if is_vertex:
+                training_script_args = [f"'{x}'" for x in to_sacred_params_for_vertex(kwargs)]
 
-    sig = inspect.signature(func)
-    params_dict = sig._parameters.copy()
-    if "is_vertex" not in params_dict:
-        new_params_dict = OrderedDict({
-            "is_vertex": inspect.signature(inner)._parameters["is_vertex"]
-        })
-        for key, param in params_dict.items():
-            new_params_dict[key] = param
-        sig._parameters = new_params_dict
-    inner.__signature__ = sig
-    inner.__name__ = func.__name__
+                # Define output bucket for Vertex
+                staging_path, output_path, metrics_path = get_vertex_paths(_config, state)
 
-    return inner
+                run_job_on_vertex(
+                    kwargs["_run"],
+                    _config.models[kwargs["model_name"]],
+                    _config.google_cloud_project,
+                    requirements=requirements,
+                    training_script_args=[" ".join(["with"] + training_script_args)],
+                    staging_bucket=staging_path,
+                    metrics_gs_link=metrics_path,
+                    output_dir=output_path,
+                    training_script_path=os.path.abspath(__file__)
+                )
+            else:
+                func(*args, **kwargs)
+
+        sig = inspect.signature(func)
+        params_dict = sig._parameters.copy()
+        if "is_vertex" not in params_dict:
+            new_params_dict = OrderedDict({
+                "is_vertex": inspect.signature(inner)._parameters["is_vertex"]
+            })
+            for key, param in params_dict.items():
+                new_params_dict[key] = param
+            sig._parameters = new_params_dict
+        inner.__signature__ = sig
+        inner.__name__ = func.__name__
+
+        return inner
+
+    return decorator
 
 
 @ex.automain
-@vertex_wrapper
+@vertex_wrapper(requirements=[
+    "google-cloud-storage==1.38.0",
+    "dill==0.3.4",
+    "scipy==1.6.3",
+    "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@generalised-training#egg=vertex-edge"
+])
 def main(
         _run: Experiment,
         params,
+        model_name: str,
         train_uri: str,
         test_uri: str,
         model_dir: str,

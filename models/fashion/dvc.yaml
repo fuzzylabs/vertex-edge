@@ -11,7 +11,7 @@ stages:
     - ../../data/fashion-mnist/test.pickle
     - ../../data/fashion-mnist/train.pickle
   train:
-    cmd: dvc push && PYTHONPATH=../../ python3 train-wrapper.py
+    cmd: dvc push && python3 train-wrapper.py
     deps:
     - ../../data/fashion-mnist/test.pickle
     - ../../data/fashion-mnist/train.pickle
