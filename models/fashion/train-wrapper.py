@@ -19,7 +19,7 @@ from edge.state import EdgeState
 from edge.training.sacred import to_sacred_params_for_vertex, to_sacred_with_statement
 from edge.training.training import run_job_on_vertex, TrainedModel
 
-_config = EdgeConfig.load_default()
+_config = EdgeConfig.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../edge.yaml"))
 state = EdgeState.load(_config)
 
 ex = Experiment("fashion-mnist-model-training")

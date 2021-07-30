@@ -1,6 +1,13 @@
 import os
 
 
+def get_default_config_path():
+    path = os.environ.get("EDGE_CONFIG")
+    if path is None:
+        path = os.path.join(os.getcwd(), "edge.yaml")
+    return path
+
+
 def get_model_path(model_name: str):
     return f"models/{model_name}"
 

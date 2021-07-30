@@ -2,10 +2,10 @@ from dataclasses import dataclass, field
 from typing import TypeVar, Type, Optional, Dict
 from serde import serialize, deserialize
 from serde.yaml import from_yaml, to_yaml
-import os
 from contextlib import contextmanager
 
 from edge.tui import StepTUI, SubStepTUI
+from edge.path import get_default_config_path
 
 
 @deserialize
@@ -77,14 +77,14 @@ class EdgeConfig:
 
     @classmethod
     def load_default(cls: Type[T]) -> T:
-        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../edge.yaml")
+        config_path = get_default_config_path()
         config = EdgeConfig.load(config_path)
         return config
 
     @classmethod
     @contextmanager
     def context(cls: Type[T], to_save: bool = False, silent: bool = False) -> T:
-        config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../edge.yaml")
+        config_path = get_default_config_path()
         config = EdgeConfig.load(config_path)
         try:
             yield config
