@@ -20,11 +20,12 @@ from edge.training.sacred import to_sacred_params_for_vertex
 from edge.training.training import run_job_on_vertex, TrainedModel
 from edge.training.utils import wrap_open, get_vertex_paths
 
-_config = EdgeConfig.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../edge.yaml"))
-state = EdgeState.load(_config)
-
 ex = Experiment("fashion-mnist-model-training")
-track_experiment(_config, state, ex)
+
+if not os.environ.get("RUNNING_ON_VERTEX"):  # Do not try to get config, state or mongo, when running on Vertex
+    _config = EdgeConfig.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../edge.yaml"))
+    state = EdgeState.load(_config)
+    track_experiment(_config, state, ex)
 
 
 def train_model(train_dataset, n_neighbors):

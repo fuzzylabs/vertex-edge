@@ -124,6 +124,7 @@ def run_job_on_vertex(
                     project=gcp_config.project_id,
                     location=gcp_config.region,
                     staging_bucket=staging_bucket,
+                    environment_variables={"RUNNING_ON_VERTEX": "True"}
                 ).run()
             with SubStepTUI("Fetching the results"):
                 client = storage.Client(project=gcp_config.project_id)
