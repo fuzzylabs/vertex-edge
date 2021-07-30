@@ -6,6 +6,7 @@ import dill
 import joblib
 import json
 import dvc.api
+import dvc.exceptions
 import yaml
 import uuid
 import os.path
@@ -23,6 +24,7 @@ from edge.training.utils import wrap_open, get_vertex_paths
 ex = Experiment("fashion-mnist-model-training")
 
 if not os.environ.get("RUNNING_ON_VERTEX"):  # Do not try to get config, state or mongo, when running on Vertex
+    print("Ran")
     _config = EdgeConfig.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../edge.yaml"))
     state = EdgeState.load(_config)
     track_experiment(_config, state, ex)
@@ -68,15 +70,22 @@ def save_results(model, metrics, model_output_dir, metrics_output_path):
 
 @ex.config
 def config():
-    params = yaml.safe_load(open("params.yaml"))["train"]
-    print(type(params), params)
-    is_vertex = params["is_vertex"]
+    if os.path.exists("params.yaml"):
+        params = yaml.safe_load(open("params.yaml"))["train"]
+        is_vertex = params["is_vertex"]
+    else:
+        params = {}
+        is_vertex = False
 
     model_name = "fashion"
 
     # Get dataset links
-    train_uri = dvc.api.get_url("data/fashion-mnist/train.pickle")
-    test_uri = dvc.api.get_url("data/fashion-mnist/test.pickle")
+    try:
+        train_uri = dvc.api.get_url("data/fashion-mnist/train.pickle")
+        test_uri = dvc.api.get_url("data/fashion-mnist/test.pickle")
+    except dvc.exceptions.PathMissingError:
+        train_uri = ""
+        test_uri = ""
 
     # Define local defaults
     model_dir = "./"
@@ -100,7 +109,7 @@ def vertex_wrapper(requirements: Optional[List[str]] = None):
                     _config.models[kwargs["model_name"]],
                     _config.google_cloud_project,
                     requirements=requirements,
-                    training_script_args=[" ".join(["with"] + training_script_args)],
+                    training_script_args=["-p", "with"] + training_script_args,
                     staging_bucket=staging_path,
                     metrics_gs_link=metrics_path,
                     output_dir=output_path,
@@ -131,6 +140,7 @@ def vertex_wrapper(requirements: Optional[List[str]] = None):
     "google-cloud-storage==1.38.0",
     "dill==0.3.4",
     "scipy==1.6.3",
+    "sacred==0.8.2",
     "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@generalised-training#egg=vertex-edge"
 ])
 def main(

@@ -8,9 +8,9 @@ def to_sacred_params_for_vertex(kwargs, in_dict=False) -> List[str]:
         else:
             return f"\"{_key}\": {_val}"
     sacred_params = []
-    if not in_dict:
-        sacred_params += ["is_vertex=False"]
     for key, val in kwargs.items():
+        if key == "is_vertex":
+            val = False
         if key == "_run":
             continue
         elif isinstance(val, dict):

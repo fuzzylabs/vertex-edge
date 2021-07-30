@@ -16,7 +16,6 @@ stages:
     - ../../data/fashion-mnist/test.pickle
     - ../../data/fashion-mnist/train.pickle
     - train-wrapper.py
-    - train.py
     outs:
       - trained_model.json
     params:
