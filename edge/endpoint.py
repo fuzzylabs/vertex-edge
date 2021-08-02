@@ -80,12 +80,10 @@ def setup_endpoint(project_id: str, region: str, endpoint_name: str) -> ModelSta
                     project_id, region, endpoint_name
                 )
                 sub_step.update(message="Created 'fashion-endpoint' endpoint")
-            return ModelState(endpoint_resource_name)
+            return ModelState(endpoint_resource_name=endpoint_resource_name)
 
 
-def tear_down_endpoint(_config: EdgeConfig, _state: EdgeState):
-    print(f"# Tearing down Vertex AI endpoint: {_state.vertex_endpoint_state.endpoint_resource_name}")
-
-    endpoint = aiplatform.Endpoint(_state.vertex_endpoint_state.endpoint_resource_name)
+def tear_down_endpoint(endpoint_resource_name: str):
+    endpoint = aiplatform.Endpoint(endpoint_resource_name)
     endpoint.undeploy_all()
     endpoint.delete()
