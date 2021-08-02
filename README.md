@@ -78,23 +78,25 @@ Then authenticate by running:
 gcloud auth login
 ```
 
-Followed by
-
-```
-gcloud auth application-default login
-```
-
 Next you need to configure the project ID. This should be the project which you created during 'Setting up GCP environment' above.
 
 ```
 gcloud config set project <your project ID>
 ```
 
-Finally, you'll need to configure a region. Please see the [GCP documentation](https://cloud.google.com/vertex-ai/docs/general/locations#feature-availability) to understand which regions are available for Vertex.
+You'll also need to configure a region. Please see the [GCP documentation](https://cloud.google.com/vertex-ai/docs/general/locations#feature-availability) to understand which regions are available for Vertex.
 
 ```
 gcloud config set compute/region <region name>
 ```
+
+Finally, you need to get application default credentials by running:
+
+```
+gcloud auth application-default login
+```
+
+
 
 ## Initialising vertex:edge
 
@@ -190,11 +192,8 @@ We'll use the vertex:edge Bash shell once again here. Run:
 And within the Bash shell run
 
 ```
-dvc pull
 dvc repro models/fashion/dvc.yaml
 ```
-
-Note that `dvc pull` will pull down the latest version of the data; if you already have the latest version, this won't do anything, but it's good practice to do this before building a model.
 
 Then `dvc repro` runs the pipeline itself. This might take a little while to run, but you'll see periodic status updates as it progresses. You can also view the [job in progress in the Google Cloud Console](https://console.cloud.google.com/vertex-ai/training/custom-jobs).
 
@@ -210,11 +209,36 @@ Deployment is done with just one command:
 ./edge.sh model deploy
 ```
 
-At any point, you can get hold of the endpoint associated with the model by running
+To interact with a model, you need to know its _endpoint_. You can get hold of the endpoint associated with the model by running
 
 ```
 ./edge.sh model get-endpoint
 ```
+
+## Testing the model with some sample payloads
+
+Now we'll do some inference using the deployed model. The file `test_payload.json` contains three images. The images are stored as numerical arrays, and for each image we expect the model to give us a classification.
+
+The script `test_endpoint.sh` will use `test_payload.json` to test the model. You can run:
+
+```
+./test_endpoint.sh
+```
+
+You should get back the following response
+
+```
+{
+  "predictions": [
+    9,
+    2,
+    1
+  ],
+  "deployedModelId": "6884244611645046784"
+}
+```
+
+The numbers `9`, `2`, `1` represent the predicted classes for the three images. The model itself just gives us numbers, but these correspond to `Ankle boot`, `Trouser`, `T-shirt/top`.
 
 ## Tracking experiments
 

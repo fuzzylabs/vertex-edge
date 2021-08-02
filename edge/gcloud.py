@@ -67,7 +67,7 @@ def is_billing_enabled(project: str) -> bool:
         )
 
 
-def is_authenticated() -> (bool, str):
+def is_authenticated(project_id: str) -> (bool, str):
     """
     Check if gcloud is authenticated
     :return: is authenticated, and the reason if not
@@ -78,9 +78,12 @@ def is_authenticated() -> (bool, str):
         return False, "gcloud is not authenticated. Run `gcloud auth login`."
 
     try:
-        subprocess.check_output(
-            f"gcloud auth application-default print-access-token", shell=True, stderr=subprocess.DEVNULL
-        )
+        credentials = json.loads(subprocess.check_output(
+            f"gcloud auth application-default print-access-token --format json", shell=True, stderr=subprocess.DEVNULL
+        ).decode("utf-8"))
+        if credentials["quota_project_id"] != project_id:
+            return False, f"Quota project id does not match '{project_id}'. Please generate new application default" \
+                          f" credentials by running `gcloud auth application-default login`"
         return True, ""
     except subprocess.CalledProcessError:
         return (

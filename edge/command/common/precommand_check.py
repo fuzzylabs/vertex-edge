@@ -4,9 +4,9 @@ from edge.gcloud import is_authenticated, project_exists, is_billing_enabled
 from edge.tui import SubStepTUI, StepTUI
 
 
-def check_gcloud_authenticated():
+def check_gcloud_authenticated(project_id: str):
     with SubStepTUI(message="️Checking if you have authenticated with gcloud") as sub_step:
-        _is_authenticated, _reason = is_authenticated()
+        _is_authenticated, _reason = is_authenticated(project_id)
         if not _is_authenticated:
             raise EdgeException(_reason)
 
@@ -30,6 +30,6 @@ def check_billing_enabled(gcloud_project: str):
 def precommand_checks(config: EdgeConfig):
     gcloud_project = config.google_cloud_project.project_id
     with StepTUI(message="Checking your GCP environment", emoji="☁️") as step:
-        check_gcloud_authenticated()
+        check_gcloud_authenticated(gcloud_project)
         check_project_exists(gcloud_project)
         check_billing_enabled(gcloud_project)
