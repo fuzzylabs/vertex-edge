@@ -36,3 +36,7 @@ COPY src/ src/
 
 RUN ./setup.py build
 RUN ./setup.py install
+
+# Copy the entrypoint script
+COPY edge_docker_entrypoint.sh /edge_docker_entrypoint.sh
+ENTRYPOINT ["/edge_docker_entrypoint.sh"]
