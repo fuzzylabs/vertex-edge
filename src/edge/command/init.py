@@ -56,7 +56,7 @@ Happy herding! 🐏
 
                 try:
                     gcloud_alpha_version = get_gcloud_version("alpha")
-                    expected_gcloud_alpha_version_string = "2021.07.19"
+                    expected_gcloud_alpha_version_string = "2021.06.00"
                     expected_gcloud_alpha_version = Version.from_string(expected_gcloud_alpha_version_string)
                     if not gcloud_alpha_version.is_at_least(expected_gcloud_alpha_version):
                         raise EdgeException(
@@ -93,8 +93,6 @@ Happy herding! 🐏
                     )
 
         with StepTUI(message="Checking your GCP environment", emoji="☁️") as step:
-            check_gcloud_authenticated()
-
             with SubStepTUI(message="Verifying GCloud configuration") as sub_step:
                 gcloud_account = get_gcloud_account()
                 if gcloud_account is None or gcloud_account == "":
@@ -130,6 +128,8 @@ Happy herding! 🐏
                     raise EdgeException("Run `gcloud config set project <project_id>` to set the correct project id")
                 if not questionary.confirm(f"Is this the correct region: {gcloud_region}", qmark=qmark).ask():
                     raise EdgeException("Run `gcloud config set compute/region <region>` to set the correct region")
+
+            check_gcloud_authenticated(gcloud_project)
 
             with SubStepTUI(f"{gcloud_region} is available on Vertex AI") as sub_step:
                 if gcloud_region not in get_gcp_regions(gcloud_project):

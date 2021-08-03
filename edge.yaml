@@ -1,6 +1,4 @@
-experiments:
-  gke_cluster_name: sacred
-  mongodb_connection_string_secret: sacred-mongodb-connection-string
+experiments: null
 google_cloud_project:
   project_id: fuzzylabs
   region: europe-west4

@@ -88,5 +88,9 @@ def setup_storage(project_id: str, region: str, bucket_name: str) -> StorageBuck
                     bucket_name,
                 )
             return StorageBucketState(bucket_path)
+        except NotFound as e:
+            raise EdgeException(f"The '{project_id}' project could not be found. It might mean that the quota project "
+                                f"is set to a different project. Please generate new application default "
+                                f"credentials by running `gcloud auth application-default login`")
         except ValueError as e:
             raise EdgeException(f"Unexpected error while setting up Storage bucket:\n{str(e)}")
