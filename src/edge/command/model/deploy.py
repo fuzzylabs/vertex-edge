@@ -1,10 +1,11 @@
-import json
 import os
 
+from serde.json import from_json
 from edge.command.common.precommand_check import precommand_checks
 from edge.config import EdgeConfig
 from edge.exception import EdgeException
 from edge.state import EdgeState
+from edge.training.training import TrainedModel
 from edge.tui import TUI, StepTUI, SubStepTUI
 from edge.vertex_deploy import vertex_deploy
 from edge.path import get_model_dvc_pipeline, get_vertex_model_json
@@ -43,8 +44,11 @@ def model_deploy(model_name: str):
                                                 " trained. To train the model, "
                                                 f"run `dvc repro {get_model_dvc_pipeline(model_name)}`")
                         with open(get_vertex_model_json(model_name)) as file:
-                            model_dict = json.load(file)
-                        model_resource_name = model_dict["model_name"]
+                            model = from_json(TrainedModel, file.read())
+                        if model.is_local:
+                            raise EdgeException("This model was trained locally, and hence cannot be deployed "
+                                                "on Vertex AI")
+                        model_resource_name = model.model_name
                 vertex_deploy(endpoint_resource_name, model_resource_name, model_name)
 
                 state.models[model_name].deployed_model_resource_name = model_resource_name

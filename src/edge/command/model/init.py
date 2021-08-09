@@ -58,13 +58,9 @@ Happy herding! 🐏
                     with SubStepTUI(f"Creating model '{model_name}' configuration"):
                         model_config = ModelConfig(
                             name=model_name,
-                            prediction_server_image=f"gcr.io/{config.google_cloud_project.project_id}/"
-                                                    f"{model_name}-prediction",
                             endpoint_name=f"{model_name}-endpoint"
                         )
                         config.models[model_name] = model_config
-
-                image_name = config.models[model_name].prediction_server_image
 
                 endpoint_name = config.models[model_name].endpoint_name
 

@@ -1,0 +1,1 @@
+include src/edge/k8s/*.yaml
