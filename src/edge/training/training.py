@@ -161,6 +161,8 @@ def vertex_wrapper(config: EdgeConfig, state: EdgeState, requirements: Optional[
     if requirements is None:
         requirements = []
 
+    training_script_path = inspect.getframeinfo(sys._getframe(1)).filename
+
     def decorator(func):
         def inner(is_vertex: bool, *args, **kwargs):
             if is_vertex:
@@ -189,7 +191,7 @@ def vertex_wrapper(config: EdgeConfig, state: EdgeState, requirements: Optional[
                     training_script_args=["-p", "with"] + training_script_args,
                     staging_bucket=staging_path,
                     output_dir=output_path,
-                    training_script_path=os.path.abspath(__file__)
+                    training_script_path=training_script_path
                 )
             else:
                 func(*args, **kwargs)
