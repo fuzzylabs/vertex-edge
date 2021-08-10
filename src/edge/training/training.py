@@ -94,7 +94,6 @@ def run_job_on_vertex(
         requirements: List[str],
         training_script_args: List[str],
         staging_bucket: str,
-        metrics_gs_link: str,
         output_dir: str,
         training_script_path: str = "train.py"
 ):
@@ -107,7 +106,6 @@ def run_job_on_vertex(
     :param requirements: Additional pip requirements for a training container
     :param training_script_args: Arguments to pass to the training script
     :param staging_bucket: Vertex AI staging bucket
-    :param metrics_gs_link: Google Storage URI for metrics file
     :param output_dir: Google Storage URI for output directory
     :param training_script_path: Training script path, default: train.py
     """
@@ -135,7 +133,12 @@ def run_job_on_vertex(
                 ).run()
             with SubStepTUI("Fetching the results"):
                 client = storage.Client(project=gcp_config.project_id)
-                metrics = json.loads(storage.Blob.from_string(metrics_gs_link, client).download_as_bytes())
+                metrics = json.loads(
+                    storage.Blob.from_string(
+                        os.path.join(output_dir, "metrics.json"),
+                        client
+                    ).download_as_bytes()
+                )
 
                 for metric in metrics:
                     _run.log_scalar(metric, metrics[metric])
@@ -161,15 +164,20 @@ def vertex_wrapper(config: EdgeConfig, state: EdgeState, requirements: Optional[
     def decorator(func):
         def inner(is_vertex: bool, *args, **kwargs):
             if is_vertex:
-                training_script_args = [f"'{x}'" for x in to_sacred_params_for_vertex(kwargs)]
-
                 if kwargs["model_name"] not in config.models:
                     print(f"Model '{kwargs['model_name']}' has not been initialised and therefore cannot be trained on "
                           f"Vertex AI. Initialise it by running `edge model init {kwargs['model_name']}`.")
                     sys.exit(1)
 
                 # Define output bucket for Vertex
-                staging_path, output_path, metrics_path = get_vertex_paths(config, state)
+                staging_path, output_path = get_vertex_paths(config, state)
+
+                kwargs["model_output_dir"] = output_path
+                kwargs["is_vertex"] = False
+
+                sacred_params = to_sacred_params_for_vertex(kwargs)
+
+                training_script_args = [f"'{x}'" for x in sacred_params]
 
                 run_job_on_vertex(
                     kwargs["_run"],
@@ -180,7 +188,6 @@ def vertex_wrapper(config: EdgeConfig, state: EdgeState, requirements: Optional[
                     ],
                     training_script_args=["-p", "with"] + training_script_args,
                     staging_bucket=staging_path,
-                    metrics_gs_link=metrics_path,
                     output_dir=output_path,
                     training_script_path=os.path.abspath(__file__)
                 )
