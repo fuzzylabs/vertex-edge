@@ -19,5 +19,6 @@ setup(
         "sacred==0.8.2",
         "pymongo==3.11.4",
         "questionary==1.10.0",
+        "joblib==1.0.1"
     ]
 )
