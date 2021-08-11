@@ -166,7 +166,7 @@ def vertex_wrapper(config: EdgeConfig, state: EdgeState, requirements: Optional[
     training_script_path = inspect.getframeinfo(sys._getframe(1)).filename
 
     def decorator(func):
-        def inner(is_vertex: bool, model_name: str, model_output_dir: str = "./", *args, **kwargs):
+        def inner(is_vertex: bool, model_name: str, *args, **kwargs):
             if is_vertex:
                 if model_name not in config.models:
                     print(f"Model '{model_name}' has not been initialised and therefore cannot be trained on "
