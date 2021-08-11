@@ -21,6 +21,8 @@ from edge.tui import TUI, StepTUI, SubStepTUI
 from edge.path import get_default_config_path_from_model
 
 
+@deserialize
+@serialize
 @dataclass
 class TrainedModel:
     model_name: Optional[str]
@@ -164,11 +166,11 @@ def vertex_wrapper(config: EdgeConfig, state: EdgeState, requirements: Optional[
     training_script_path = inspect.getframeinfo(sys._getframe(1)).filename
 
     def decorator(func):
-        def inner(is_vertex: bool, *args, **kwargs):
+        def inner(is_vertex: bool, model_name: str, model_output_dir: str, *args, **kwargs):
             if is_vertex:
-                if kwargs["model_name"] not in config.models:
-                    print(f"Model '{kwargs['model_name']}' has not been initialised and therefore cannot be trained on "
-                          f"Vertex AI. Initialise it by running `edge model init {kwargs['model_name']}`.")
+                if model_name not in config.models:
+                    print(f"Model '{model_name}' has not been initialised and therefore cannot be trained on "
+                          f"Vertex AI. Initialise it by running `edge model init {model_name}`.")
                     sys.exit(1)
 
                 # Define output bucket for Vertex
@@ -176,12 +178,13 @@ def vertex_wrapper(config: EdgeConfig, state: EdgeState, requirements: Optional[
 
                 kwargs["model_output_dir"] = output_path
                 kwargs["is_vertex"] = False
+                kwargs["model_name"] = model_name
 
                 training_script_args = to_sacred_params_for_vertex(kwargs)
 
                 run_job_on_vertex(
                     kwargs["_run"],
-                    config.models[kwargs["model_name"]],
+                    config.models[model_name],
                     config.google_cloud_project,
                     requirements=requirements + [
                         "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@hello-world#egg=vertex-edge"
@@ -196,13 +199,13 @@ def vertex_wrapper(config: EdgeConfig, state: EdgeState, requirements: Optional[
 
         sig = inspect.signature(func)
         params_dict = sig._parameters.copy()
-        if "is_vertex" not in params_dict:
-            new_params_dict = OrderedDict({
-                "is_vertex": inspect.signature(inner)._parameters["is_vertex"]
-            })
-            for key, param in params_dict.items():
-                new_params_dict[key] = param
-            sig._parameters = new_params_dict
+        new_params_dict = OrderedDict({})
+        for param in ["is_vertex", "model_name", "model_output_dir"]:
+            if param not in params_dict:
+                new_params_dict[param] = inspect.signature(inner)._parameters[param]
+        for key, param in params_dict.items():
+            new_params_dict[key] = param
+        sig._parameters = new_params_dict
         inner.__signature__ = sig
         inner.__name__ = func.__name__
         inner.__module__ = func.__module__
