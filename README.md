@@ -1,32 +1,41 @@
 <p align="center"><img src="./vertex-edge-logo.png" alt="Vertex Edge Logo" height="200"/></a></p>
-<p align="center">Connecting the Vertices on GCP</p>
 <p align="center">
 	<img src="https://img.shields.io/github/repo-size/fuzzylabs/vertex-edge" height="20"/></a>
     <a href="https://circleci.com/gh/fuzzylabs/vertex-edge/tree/master"><img src="https://circleci.com/gh/fuzzylabs/vertex-edge/tree/master.svg?style=svg" alt="CircleCI" height="20"/></a>
 </p><br/>
 
-This repository showcases _edge_, a tool for deploying models to [Vertex](https://cloud.google.com/vertex-ai/docs/start) on [Google Cloud Platform](https://cloud.google.com). In this repository you will find:
+# Connecting the Vertices on GCP
+
+**EDGE** is a flexible, intuitive tool for training and deploying models on [Vertex](https://cloud.google.com/vertex-ai/docs/start) (part of the [Google Cloud Platform](https://cloud.google.com)).
+
+<!--* Supports a range of machine learning frameworks.-->
+* **Seamless** training in the cloud and locally.
+* **Easily adapt** your existing models to train on Vertex.
+* **Plugs in to** experiment tracking and data version control.
+* **Plays nicely with** CI/CD and infrastructure-as-code frameworks.
+
+In this repository you will find:
 
 * Source code and documentation for the tool itself.
 * A step-by-step guide to training and deploying a model to Vertex using _edge_.
 
 We've also provided a number of example models in a separate repository, see [Vertex Edge Examples](https://github.com/fuzzylabs/vertex-edge-examples).
 
-## Feedback and contributions
-
-This is a new project and we're keen to get feedback from the community that will help us to improve it. Please do **raise and discuss issues**, send us pull requests, and don't forget to **~~like and subscribe~~** star and fork.
-
-**If you want to contribute** then please check out our [contributions guide](CONTRIBUTING.md). We look forward to your contributions!
-
 ## Table of Contents
 
 * **[Getting started](#getting_started)** - a step-by-step guide to training and deploying a model to Vertex using _edge_.
 * **[Concepts](#concepts)** - a detailed guide to the underlying MLOps concepts used in this example.
-* **[Local development guide](#local_dev)**
 
 Further documentation
 
 * **[Contributing](CONTRIBUTING.md)** - how to contribute to vertex:edge.
+* **[Ready-made examples](https://github.com/fuzzylabs/vertex-edge-examples).
+
+## Feedback and contributions
+
+This is a new project and we're keen to get feedback from the community to help improve it. Please do **raise and discuss issues**, send us pull requests, and don't forget to **~~like and subscribe~~** star and fork this repo.
+
+**If you want to contribute** then please check out our [contributions guide](CONTRIBUTING.md). We look forward to your contributions!
 
 <a name="getting_started"></a>
 # Getting started
@@ -347,6 +356,3 @@ Here's a brief guide to how this project is organised:
 * [edge](edge) - code for the vertex:edge tool.
 * [models](models) - each model has its own sub-directory under `models`, and within each model directory we have training code and the training pipeline.
 * [services](services) - models by themselves aren't useful without things that interact with the model. `services` contains deployable web services that interact with models.
-
-<a name="local_dev"></a>
-# Local development guide
