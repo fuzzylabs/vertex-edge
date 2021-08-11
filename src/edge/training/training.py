@@ -177,9 +177,7 @@ def vertex_wrapper(config: EdgeConfig, state: EdgeState, requirements: Optional[
                 kwargs["model_output_dir"] = output_path
                 kwargs["is_vertex"] = False
 
-                sacred_params = to_sacred_params_for_vertex(kwargs)
-
-                training_script_args = [f"'{x}'" for x in sacred_params]
+                training_script_args = to_sacred_params_for_vertex(kwargs)
 
                 run_job_on_vertex(
                     kwargs["_run"],
