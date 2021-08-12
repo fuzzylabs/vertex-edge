@@ -6,6 +6,7 @@ from edge.command.model.get_endpoint import get_model_endpoint
 from edge.command.model.init import model_init
 from edge.command.model.list import list_models
 from edge.command.model.remove import remove_model
+from edge.command.model.template import create_model_from_template
 from edge.exception import EdgeException
 
 
@@ -30,6 +31,11 @@ def add_model_parser(subparsers):
     remove_parser = actions.add_parser("remove", help="Remove an initialised model from vertex:edge")
     remove_parser.add_argument("model_name", metavar="model-name", help="Model name")
 
+    template_parser = actions.add_parser("template", help="Create a model pipeline from a template")
+    template_parser.add_argument("model_name", metavar="model-name", help="Model name")
+    template_parser.add_argument("-f", action="store_true",
+                                 help="Force override a pipeline directory if already exists")
+
 
 def run_model_actions(args: argparse.Namespace):
     if args.action == "init":
@@ -44,5 +50,7 @@ def run_model_actions(args: argparse.Namespace):
         describe_model(args.model_name)
     elif args.action == "remove":
         remove_model(args.model_name)
+    elif args.action == "template":
+        create_model_from_template(args.model_name, args.f)
     else:
         raise EdgeException("Unexpected model command")
