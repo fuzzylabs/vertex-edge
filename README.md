@@ -29,7 +29,7 @@ We've also provided a number of example models in a separate repository, see [Ve
 Further documentation
 
 * **[Contributing](CONTRIBUTING.md)** - how to contribute to vertex:edge.
-* **[Ready-made examples](https://github.com/fuzzylabs/vertex-edge-examples).
+* **[Ready-made examples](https://github.com/fuzzylabs/vertex-edge-examples)**.
 
 ## Feedback and contributions
 
@@ -42,27 +42,36 @@ This is a new project and we're keen to get feedback from the community to help 
 
 In this guide, we'll work through the fundamentals of the vertex:edge tool. By the end you'll have trained and deployed a model to GCP.
 
-To begin with, create a fresh directory in which to work. For instance:
-
-```
-mkdir my-vertex-model
-cd my-vertex-model
-```
-
 ## Pre-requisites
 
 * [Docker](https://docs.docker.com/get-docker) (version 18 or greater).
 * [gcloud command line tool](https://cloud.google.com/sdk/docs/install).
 * Python, at least version 3.8.
-* PIP, at least version 21.2.0 (you can run `pip install --upgrade-pip` to ensure that you have the most recent version).
+* PIP, at least version 21.2.0 (it's a good idea to run `pip install --upgrade-pip` to ensure that you have the most recent version).
+* Git
+
+## Preparation
+
+The very first thing you'll need is a fresh directory in which to work. For instance:
+
+```
+mkdir hello-world-vertex
+cd hello-world-vertex
+```
+
+You'll need to initialise this directory as a Git repository as well:
+
+```
+git init
+```
 
 ## Setting up GCP environment
 
 Now you'll need a [GCP account](https://cloud.google.com), so sign up for one if you haven't already done so.
 
-Within your GCP account, [create a new project](https://cloud.google.com/resource-manager/docs/creating-managing-projects), or you can use an existing project if you prefer.
+Within your GCP account, [create a new project](https://cloud.google.com/resource-manager/docs/creating-managing-projects). Take a note of the project ID (you'll be able to view this in the Google Cloud console with the project selection dialog). The project ID won't necessarily match the name that you chose for the project; sometimes GCP might append some numbers to the original name.
 
-Make sure you [enable billing](https://cloud.google.com/billing/docs/how-to/modify-project) for your new project too.
+Finally make sure you [enable billing](https://cloud.google.com/billing/docs/how-to/modify-project) for your new project too.
 
 ## Authenticating with GCP
 
@@ -86,6 +95,8 @@ You'll also need to configure a region. Please see the [GCP documentation](https
 gcloud config set compute/region <region name>
 ```
 
+**Note** `gcloud` might ask you if you want to enable the Google Compute API on the project. If so, choose `y`.
+
 Finally, you need to get application default credentials by running:
 
 ```
@@ -97,35 +108,44 @@ gcloud auth application-default login
 We'll use PIP to install _edge_:
 
 ```
-pip install "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@generalised-training#egg=vertex-edge"
+pip install "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@hello-world#egg=vertex-edge"
 ```
 
-Now you should have the `edge` command available. Try running:
+After doing that, you should have the `edge` command available. Try running:
 
 ```
 edge --help
 ```
 
-Note that when you run `edge` for the first time, it will first download a Docker image (`fuzzylabs/edge`).
+**Note** that when you run `edge` for the first time, it will download a Docker image (`fuzzylabs/edge`). All Edge commands run inside Docker.
 
 ## Initialising vertex:edge
 
 Before you can use vertex:edge to train models, you'll need to initialise it (this only needs to be done once).
 
 ```
-./edge.sh init
+edge init
 ```
 
 The initialisation step will first check that your GCP environment is setup correctly and it will confirm your choice of project name and region, so that you don't accidentally install things to the wrong GCP environment.
 
 It will ask you to choose a name for a cloud storage bucket. This bucket is used for tracking the vertex:edge state, for data version control and for model assets. Keep in mind that on GCP, storage bucket names are **globally unique**, so you might find that the name you want to use is already taken (in which case vertex:edge will give you an error message). For more information please see the [official GCP documentation](https://cloud.google.com/storage/docs/naming-buckets).
 
+You might wonder what initialisation actually _does_. It sets up two things:
+
+* Creates a configuration file in your project directory, called `edge.yaml`. The configuration includes details about your GCP environment, the models that you have registered, and the cloud storage bucket.
+* Creates a _state file_. The state file lives in the cloud storage bucket, and its purpose is to make sure that only one person can modify the GCP environment at any one time.
+
 ## Setting up data version control
 
-To set this up, run:
+Don't worry, you'll get to actually train a model very soon! But there's one more thing we need, and that's data version control.
+
+Just as we use Git to track the history of our model code, we want to track data as it changes.
+
+To set up DVC up, run:
 
 ```
-./edge.sh dvc init
+edge dvc init
 ```
 
 Which does two things:
@@ -145,15 +165,9 @@ First, let's make an empty directory to house your model training code:
 mkdir -p models/hello-world
 ```
 
-### Initialising the model
-
-Before we can train a model, we need to initialise it. This is so that vertex:edge can keep track of the model's lifecycle. To initialise the fashion model, run:
-
-```
-./edge.sh model init hello-world
-```
-
 ### Filling in the model code
+
+<!-- TODO pip install sklearn -->
 
 We promised the model would be trivial. In fact, we're going to use a feature of SKLearn called a Dummy Classifier. This allows us to create a fake model for the purposes of testing.
 
@@ -172,36 +186,57 @@ That's all there is to it! of course, for your needs, you may want to define mor
 Here's the complete `hello world` example:
 
 ```python
-from edge.config import *
-from edge.state import *
-from edge.sacred import *
-from edge.training.sacred import *
 from edge.training.training import *
+from edge.training.sklearn.utils import save_results
 
 from sacred import Experiment
 
 import numpy as np
 from sklearn.dummy import DummyClassifier
 
-_config = EdgeConfig.load_default()
-state = EdgeState.load(_config)
+_config, state = get_config_and_state()
 
-ex = Experiment("hello-world-model-training")
-track_experiment(_config, state, ex)
+ex = Experiment("hello-world-model-training", save_git_info=False)
 
 @ex.config
 def cfg():
-    strategy="most_frequent"
+    strategy = "most_frequent"
+    model_name = "hello-world"
+    is_vertex = False
+
 
 @ex.automain
-def run(strategy, _run):
+@vertex_wrapper(_config, state)
+def run(
+        _run,
+        strategy,
+        model_output_dir="./",
+):
     X = np.array([-1, 1, 1, 1])
     y = np.array([0, 1, 1, 1])
     dummy_clf = DummyClassifier(strategy=strategy)
     dummy_clf.fit(X, y)
+
+    metrics = {
+        "score": dummy_clf.score(X, y)
+    }
+
+    save_results(dummy_clf, metrics, model_output_dir)
 ```
 
-Using your favourite editor, copy this code into a file inside the model directory created earlier. For instance, you might name it `model-wrapper.py`.
+Using your favourite editor, copy this code into a file named `train.py` inside the model directory created earlier.
+
+<!-- TODO: train it locally  python train.py with is_vertex=False -->
+
+### Initialising the model
+
+Before we can train a model, we need to initialise it. This is so that vertex:edge can keep track of the model's lifecycle. To initialise the fashion model, run:
+
+```
+edge model init hello-world
+```
+
+<!-- TODO: WHAT DOES INITALISING THE MODEL DO? -->
 
 ### Running the training pipeline
 
@@ -213,7 +248,7 @@ Now that the model has been initialised we can run the training pipeline. We've 
 We'll use the vertex:edge Bash shell once again here. Run:
 
 ```
-./edge.sh bash
+edge bash
 ```
 
 And within the Bash shell run
@@ -233,13 +268,13 @@ Having trained the model, you should see it listed in the [Google Cloud console 
 Deployment is done with just one command:
 
 ```
-./edge.sh model deploy
+edge model deploy
 ```
 
 To interact with a model, you need to know its _endpoint_. You can get hold of the endpoint associated with the model by running
 
 ```
-./edge.sh model get-endpoint
+edge model get-endpoint
 ```
 
 ## Testing the model with some sample payloads
