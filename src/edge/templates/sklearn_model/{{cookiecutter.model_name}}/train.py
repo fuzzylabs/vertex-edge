@@ -6,8 +6,6 @@ from sacred import Experiment
 _config, state = get_config_and_state()
 ex = Experiment("{{cookiecutter.model_name}}-model-training", save_git_info=False)
 
-track_experiment(_config, state, ex)
-
 @ex.config
 def cfg():
     # Add your config here

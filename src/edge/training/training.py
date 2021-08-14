@@ -187,7 +187,7 @@ def vertex_wrapper(config: EdgeConfig, state: EdgeState, requirements: Optional[
                     config.models[model_name],
                     config.google_cloud_project,
                     requirements=requirements + [
-                        "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@hello-world#egg=vertex-edge"
+                        "vertex-edge"
                     ],
                     training_script_args=["-p", "with"] + training_script_args,
                     staging_bucket=staging_path,
