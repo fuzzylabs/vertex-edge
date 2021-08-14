@@ -140,24 +140,30 @@ You might wonder what initialisation actually _does_. It sets up two things:
 
 Don't worry, you'll get to actually train a model very soon! But there's one more thing we need, and that's data version control.
 
-Just as we use Git to track the history of our model code, we want to track data as it changes.
+Just as we use Git to track the history of our model code, we want to track data as it changes. It's important to have this set up from the very start, because:
 
-To set up DVC up, run:
+* It will be easier for a team to share data while ensuring that everybody is working with the same version of that data.
+* It allows us to track changes over time.
+* We can link every experiment and deployed model to a specific data version.
+
+There are many different tools for data versioning; the one we use [DVC](https://dvc.org) which, itself stands for Data Version Control.
+
+To set it up, run
 
 ```
 edge dvc init
 ```
 
-Which does two things:
+This does two things:
 
-* Configure DVC locally so that you can version your data.
-* Set up remote storage using a Google Cloud Bucket so that versioned data is stored centrally.
+* Configures DVC locally so that you can version your data.
+* Sets up remote storage using a Google Cloud Bucket so that versioned data is stored centrally.
 
 At this point, if you're not already familiar with DVC, it may be a good idea to familiarise yourself with this a little before continuing by reading the [DVC official documentation](https://dvc.org/doc). Of course, if you'd prefer to defer that to later, you can carry on to training and deploying the model.
 
 ## Training a model
 
-Once you've set up DVC, you're ready to train a simple model. For this, we're going to train a trivial `hello world` example.
+Once you've set up DVC, you're ready to train a simple `hello world` model. This model won't do anything really useful, but it serves to demonstrate the building blocks and enable you to build _serious_ models.
 
 First, let's make an empty directory to house your model training code:
 
@@ -165,25 +171,57 @@ First, let's make an empty directory to house your model training code:
 mkdir -p models/hello-world
 ```
 
+Next, initialise the model. This is enables vertex:edge to keep track of the model's lifecycle.
+
+```
+edge model init hello-world
+```
+
+If you check your `config.yaml` file now, you should see that your model has been added. Note that you won't see anything new appear in the Google Cloud Console until after the model has been trained, which we'll do shortly.
+
+We're going to use the [SKLearn](https://scikit-learn.org/stable/index.html) framework for this example, so let's go ahead and install that now:
+
+```
+pip install sklearn
+```
+
 ### Filling in the model code
 
-<!-- TODO pip install sklearn -->
+We're going to use a feature of SKLearn called a Dummy Classifier, which behaves just like a real classifier, and allows us to create a fake model for the purposes of testing.
 
-We promised the model would be trivial. In fact, we're going to use a feature of SKLearn called a Dummy Classifier. This allows us to create a fake model for the purposes of testing.
+Take a look at this code snippet. This is the raw training script, without any embellishments.
 
-We need to define two functions:
+```python
+import numpy as np
+from sklearn.dummy import DummyClassifier
+
+# The strategy tells the DummyClassfier how to behave
+# Model training generally involves a multitude of parameters,
+# In this case, strategy is our sole parameter
+strategy = "most_frequent"
+
+# Define some training data
+X = np.array([-1, 1, 1, 1])
+y = np.array([0, 1, 1, 1])
+
+# Train a classifier
+dummy_clf = DummyClassifier(strategy=strategy)
+dummy_clf.fit(X, y)
+
+# Capture the training score
+print(f"Training score {dummy_clf.score(X, y)}")
+```
+
+We can run the above script locally and get a model out of it. Vertex:Edge provides an API that makes it simple to turn our training script into one that can run both locally and on Vertex.
+
+To set this up, we need to define two functions:
 
 * A configuration function that sets up the model's parameters.
 * A training function that has the actual training logic.
 
-We identify these functions via two Python annotations:
-
-* `@ex.config`
-* `@ex.automain`
-
 That's all there is to it! of course, for your needs, you may want to define more functions of your own, but these are the only things you _have_ to define, so that the tool can figure out how to run your model training script.
 
-Here's the complete `hello world` example:
+Below is the complete `hello world` example. Using your favourite editor, copy this code into a file named `train.py` inside the model directory created earlier.
 
 ```python
 from edge.training.training import *
@@ -224,28 +262,31 @@ def run(
     save_results(dummy_clf, metrics, model_output_dir)
 ```
 
-Using your favourite editor, copy this code into a file named `train.py` inside the model directory created earlier.
+There are a few additions to the original code:
 
-<!-- TODO: train it locally  python train.py with is_vertex=False -->
+At the end of that `run` function, we call `save_results`. This function is provided by the Vertex:Edge library and it will ensure that the model gets saved.
 
-### Initialising the model
+Near the top of the script, we have this line `ex = Experiment("hello-world-model-training", save_git_info=False)`. We're not introducing experiment tracking just yet; that's for later on. For now all you need to know is that every time the training script is executed, that counts as an experiment, and a bit later on, you'll be able to record and review these experiments.
 
-Before we can train a model, we need to initialise it. This is so that vertex:edge can keep track of the model's lifecycle. To initialise the fashion model, run:
+### Training the model
+
+At this point you can train the model simply by running
 
 ```
-edge model init hello-world
+python models/hello-world/train.py with is_vertex=False
 ```
 
-<!-- TODO: WHAT DOES INITALISING THE MODEL DO? -->
+And this will run the training script locally. As you can imagine, if you were to set `is_vertex=True` then will run the script on Vertex. However, it's better to do the training via a DVC pipeline.
 
-### Running the training pipeline
+This is because:
 
-Now that the model has been initialised we can run the training pipeline. We've used DVC to manage model pipelines. The pipeline does two things:
+* Pipelines can have multiple steps. For instance, we might want a data preparation step that runs before the model training script,
+* It gives us access to data versioning without the code in the script having to be aware of data versioning,
+* And a pipeline represents a well-defined workflow that can be easily reproduced.
 
-1. Generate a training and test dataset using the original data that we downloaded earlier.
-2. Run a training job on GCP Vertex.
+<!-- TODO: add the pipeline file / replace all with templating -->
 
-We'll use the vertex:edge Bash shell once again here. Run:
+First, let's jump in to a shell using `edge`:
 
 ```
 edge bash
@@ -254,7 +295,7 @@ edge bash
 And within the Bash shell run
 
 ```
-dvc repro models/fashion/dvc.yaml
+dvc repro models/hello-world/dvc.yaml
 ```
 
 Then `dvc repro` runs the pipeline itself. This might take a little while to run, but you'll see periodic status updates as it progresses. You can also view the [job in progress in the Google Cloud Console](https://console.cloud.google.com/vertex-ai/training/custom-jobs).
