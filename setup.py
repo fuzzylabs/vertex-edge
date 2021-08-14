@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="vertex:edge",
-    version="0.1.0",
+    version="0.1.1",
     url="https://github.com/fuzzylabs/vertex-edge",
     package_dir={'': 'src'},
     packages=find_packages("src/"),
@@ -12,6 +12,8 @@ setup(
     include_package_data=True,
     install_requires=[
         "pyserde==0.4.0",
+        "google-api-core==1.17.0",
+        "grpcio==1.27.0",
         "google-cloud-container==2.4.1",
         "google-cloud-secret-manager==2.5.0",
         "google_cloud_aiplatform==1.1.1",

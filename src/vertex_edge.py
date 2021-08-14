@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 vertex:edge CLI tool
 """
