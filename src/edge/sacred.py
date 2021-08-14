@@ -274,6 +274,10 @@ def get_connection_string(project_id: str, secret_id: str) -> str:
 
 
 def track_experiment(config: EdgeConfig, state: EdgeState, experiment: Experiment):
+    if config is None or state is None:
+        print("Vertex:edge configuration is not provided, the experiment will not be tracked")
+        return
+
     if state.sacred is None:
         print("Experiment tracker is not initialised in vertex:edge, the experiment will not be tracked")
         return

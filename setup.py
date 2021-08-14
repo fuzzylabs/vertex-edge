@@ -16,6 +16,7 @@ setup(
         "google-cloud-secret-manager==2.5.0",
         "google_cloud_aiplatform==1.1.1",
         "google-cloud-storage==1.38.0",
+        "cookiecutter==1.7.3",
         "dvc[gs]==2.5.0",
         "sacred==0.8.2",
         "pymongo==3.11.4",
