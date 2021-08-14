@@ -1,19 +1,28 @@
+import inspect
 import json
 import os
 import subprocess
+import sys
+from collections import OrderedDict
 from typing import List, Optional
 
+from edge.state import EdgeState
+from edge.training.sacred import to_sacred_params_for_vertex
+from edge.training.utils import get_vertex_paths
 from serde import serialize, deserialize
 from serde.json import to_json
 from dataclasses import dataclass
 from google.cloud import storage
 from google.cloud.aiplatform import Model, CustomJob
 from sacred.experiment import Experiment
-from edge.config import ModelConfig, GCProjectConfig
+from edge.config import ModelConfig, GCProjectConfig, EdgeConfig
 from edge.exception import EdgeException
 from edge.tui import TUI, StepTUI, SubStepTUI
+from edge.path import get_default_config_path_from_model
 
 
+@deserialize
+@serialize
 @dataclass
 class TrainedModel:
     model_name: Optional[str]
@@ -87,7 +96,6 @@ def run_job_on_vertex(
         requirements: List[str],
         training_script_args: List[str],
         staging_bucket: str,
-        metrics_gs_link: str,
         output_dir: str,
         training_script_path: str = "train.py"
 ):
@@ -100,7 +108,6 @@ def run_job_on_vertex(
     :param requirements: Additional pip requirements for a training container
     :param training_script_args: Arguments to pass to the training script
     :param staging_bucket: Vertex AI staging bucket
-    :param metrics_gs_link: Google Storage URI for metrics file
     :param output_dir: Google Storage URI for output directory
     :param training_script_path: Training script path, default: train.py
     """
@@ -128,7 +135,12 @@ def run_job_on_vertex(
                 ).run()
             with SubStepTUI("Fetching the results"):
                 client = storage.Client(project=gcp_config.project_id)
-                metrics = json.loads(storage.Blob.from_string(metrics_gs_link, client).download_as_bytes())
+                metrics = json.loads(
+                    storage.Blob.from_string(
+                        os.path.join(output_dir, "metrics.json"),
+                        client
+                    ).download_as_bytes()
+                )
 
                 for metric in metrics:
                     _run.log_scalar(metric, metrics[metric])
@@ -145,3 +157,67 @@ def run_job_on_vertex(
             with SubStepTUI("Saving results locally"):
                 with open("trained_model.json", "w") as f:
                     f.write(to_json(TrainedModel.from_vertex_model(model)))
+
+
+def vertex_wrapper(config: EdgeConfig, state: EdgeState, requirements: Optional[List[str]] = None):
+    if requirements is None:
+        requirements = []
+
+    training_script_path = inspect.getframeinfo(sys._getframe(1)).filename
+
+    def decorator(func):
+        def inner(is_vertex: bool, model_name: str, *args, **kwargs):
+            if is_vertex:
+                if model_name not in config.models:
+                    print(f"Model '{model_name}' has not been initialised and therefore cannot be trained on "
+                          f"Vertex AI. Initialise it by running `edge model init {model_name}`.")
+                    sys.exit(1)
+
+                # Define output bucket for Vertex
+                staging_path, output_path = get_vertex_paths(config, state)
+
+                kwargs["model_output_dir"] = output_path
+                kwargs["is_vertex"] = False
+                kwargs["model_name"] = model_name
+
+                training_script_args = to_sacred_params_for_vertex(kwargs)
+
+                run_job_on_vertex(
+                    kwargs["_run"],
+                    config.models[model_name],
+                    config.google_cloud_project,
+                    requirements=requirements + [
+                        "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@hello-world#egg=vertex-edge"
+                    ],
+                    training_script_args=["-p", "with"] + training_script_args,
+                    staging_bucket=staging_path,
+                    output_dir=output_path,
+                    training_script_path=training_script_path
+                )
+            else:
+                func(*args, **kwargs)
+
+        sig = inspect.signature(func)
+        params_dict = sig._parameters.copy()
+        new_params_dict = OrderedDict({})
+        for param in ["is_vertex", "model_name", "model_output_dir"]:
+            if param not in params_dict:
+                new_params_dict[param] = inspect.signature(inner)._parameters[param]
+        for key, param in params_dict.items():
+            new_params_dict[key] = param
+        sig._parameters = new_params_dict
+        inner.__signature__ = sig
+        inner.__name__ = func.__name__
+        inner.__module__ = func.__module__
+
+        return inner
+
+    return decorator
+
+
+def get_config_and_state() -> (Optional[EdgeConfig], Optional[EdgeState]):
+    if os.environ.get("RUNNING_ON_VERTEX"):
+        return None, None
+    config = EdgeConfig.load(get_default_config_path_from_model(inspect.getframeinfo(sys._getframe(1)).filename))
+    state = EdgeState.load(config)
+    return config, state

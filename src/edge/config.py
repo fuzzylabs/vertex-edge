@@ -1,3 +1,5 @@
+import inspect
+import sys
 from dataclasses import dataclass, field
 from typing import TypeVar, Type, Optional, Dict
 from serde import serialize, deserialize
@@ -5,7 +7,7 @@ from serde.yaml import from_yaml, to_yaml
 from contextlib import contextmanager
 
 from edge.tui import StepTUI, SubStepTUI
-from edge.path import get_default_config_path
+from edge.path import get_default_config_path, get_default_config_path_from_model
 
 
 @deserialize
@@ -77,14 +79,15 @@ class EdgeConfig:
 
     @classmethod
     def load_default(cls: Type[T]) -> T:
-        config_path = get_default_config_path()
+        config_path = get_default_config_path_from_model(inspect.getframeinfo(sys._getframe(1)).filename)
         config = EdgeConfig.load(config_path)
         return config
 
     @classmethod
     @contextmanager
-    def context(cls: Type[T], to_save: bool = False, silent: bool = False) -> T:
-        config_path = get_default_config_path()
+    def context(cls: Type[T], config_path: str = None, to_save: bool = False, silent: bool = False) -> T:
+        if config_path is None:
+            config_path = get_default_config_path()
         config = EdgeConfig.load(config_path)
         try:
             yield config
