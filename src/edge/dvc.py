@@ -19,7 +19,7 @@ def dvc_init():
             try:
                 subprocess.check_output("dvc init", shell=True, stderr=subprocess.DEVNULL)
             except subprocess.CalledProcessError as e:
-                raise EdgeException("Unexpected error occurred while initialising DVC:\n{str(e)}")
+                raise EdgeException(f"Unexpected error occurred while initialising DVC:\n{str(e)}")
 
 
 def dvc_destroy():

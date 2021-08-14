@@ -1,3 +1,5 @@
+import os
+
 from edge.command.common.precommand_check import precommand_checks
 from edge.config import EdgeConfig
 from edge.state import EdgeState
