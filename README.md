@@ -108,7 +108,7 @@ gcloud auth application-default login
 We'll use PIP to install _edge_:
 
 ```
-pip install "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@hello-world#egg=vertex-edge"
+pip install vertex-edge
 ```
 
 After doing that, you should have the `edge` command available. Try running:
