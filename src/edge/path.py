@@ -2,14 +2,15 @@ import os
 
 
 def get_default_config_path():
-    path = os.environ.get("EDGE_CONFIG")
+    # TODO: Document env var
+    path = os.environ.get("EDGE_CONFIG_PATH")
     if path is None:
         path = os.path.join(os.getcwd(), "edge.yaml")
     return path
 
 
 def get_default_config_path_from_model(caller: str):
-    path = os.environ.get("EDGE_CONFIG")
+    path = os.environ.get("EDGE_CONFIG_PATH")
     if path is None:
         path = os.path.join(os.path.dirname(caller), "../../", "edge.yaml")
     return path

@@ -1,18 +1,22 @@
 import os
 import sys
 import abc
+import uuid
 import inspect
 import logging
 from typing import Optional, Any
+from enum import Enum
 
 from sacred import Experiment
 from sacred.observers import MongoObserver
 from google.cloud import secretmanager_v1
 from google.cloud.aiplatform import CustomJob
 
-from edge.training.utils import get_vertex_paths
-
 logging.basicConfig(level = logging.INFO)
+
+class TrainingTarget(Enum):
+    LOCAL = "local"
+    VERTEX = "vertex"
 
 """
 TODO: These are helper functions that need to be moved elsewhere during refactoring
@@ -28,19 +32,6 @@ def get_connection_string(project_id: str, secret_id: str) -> str:
     response = client.access_secret_version(name=secret_name)
     return response.payload.data.decode("UTF-8")
 
-# TODO: Move this somewhere else
-def get_config() -> EdgeConfig:
-    # TODO: This looks error-prone
-    config = EdgeConfig.load(edge.path.get_default_config_path_from_model(inspect.getframeinfo(sys._getframe(1)).filename))
-
-    # TODO: Separate
-    #state = EdgeState.load(config)
-
-    return config
-
-def get_state(config: EdgeConfig) -> EdgeState:
-    return EdgeState.load(config)
-
 """
 A Trainer encapsulates a model training script and its associated MLOps lifecycle
 
@@ -49,42 +40,70 @@ TOOD: How much can we abstract this? What if Sacred is replaced with something e
 TODO: How can we be even better at handling experiment config?
 """
 class Trainer():
+    # TODO: group together experiment variables and Vertex variables. Note when target is local, we don't need Vertex values
     experiment = None
     parameters = {}
     edge_config = {}
-    edge_state = {}
     name = None
     pip_requirements = [
         "sklearn",
         "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@release/v0.2.0"
     ]
     vertex_training_image = "europe-docker.pkg.dev/cloud-aiplatform/training/scikit-learn-cpu.0-23:latest"
-    vertex_training_bucket = None
-    output_path = None # TODO: not used yet
+    vertex_training_path = None
+    vertex_output_path = None
     script_path = __file__
+    target = TrainingTarget.LOCAL
 
-    # TODO: let the user choose from auto-inferred config and directly-specified config
     def __init__(self, name: str):
         self.name = name
-        self.edge_config = get_config()
-        self.edge_state = get_state(self.edge_config)
 
-        self.vertex_training_bucket, self.output_path = get_vertex_paths(self.edge_config, self.edge_state)
+        # Determine our target training environment
+        if os.environ.get("RUN_ON_VERTEX"):
+            logging.info("Target training environment is Vertex")
+            self.target = TrainingTarget.VERTEX
+        else:
+            logging.info("Target training environment is Local")
+            self.target = TrainingTarget.LOCAL
 
+        # Load the Edge configuration from the appropriate source
+        # TODO: Document env var
+        if os.environ.get("EDGE_CONFIG"):
+            logging.info("Edge config will be loaded from environment variable EDGE_CONFIG_STRING")
+            self.edge_config = EdgeConfig.from_string(os.environ.get("EDGE_CONFIG"))
+        else:
+            logging.info("Edge config will be loaded from a file")
+            # TODO: This isn't very stable. We should search for the config file.
+            self.edge_config = EdgeConfig.load(edge.path.get_default_config_path_from_model(inspect.getframeinfo(sys._getframe(1)).filename))
+
+        logging.info(f"Edge configuration: {self.edge_config}")
+
+        # Determine correct values for running on Vertex
+        self.vertex_training_path = os.path.join(
+            self.edge_config.storage_bucket.bucket_name,
+            self.edge_config.storage_bucket.vertex_jobs_directory
+        )
+        self.vertex_output_path = os.path.join(self.vertex_training_path, str(uuid.uuid4()))
+
+        # Set up experiment tracking for this training job
         # TODO: Restore Git support
+        # TODO: If training target is Vertex, we don't need to init an experiment
+        # TODO: Experiment initialisation in its own function (but *must* be called during construction)
         self.experiment = Experiment(name, save_git_info=False)
 
         mongo_connection_string = get_connection_string(
             self.edge_config.google_cloud_project.project_id,
             self.edge_config.experiments.mongodb_connection_string_secret
         )
-
         self.experiment.observers.append(MongoObserver(mongo_connection_string))
+
         @self.experiment.main
         def ex_noop_main(c):
             pass
 
-
+    """
+    To be implemented by data scientist
+    """
     @abc.abstractmethod
     def main(self):
         # TODO: A more user-friendly message
@@ -99,13 +118,9 @@ class Trainer():
     # TODO: Instead of on_vertex, have a target, which can be various things
     # TODO: What's the best way to distinguish local and vertex runs? this way is a bit confusing
     def run(self):
-        on_vertex = os.environ.get("RUN_ON_VERTEX")
-
-        if on_vertex:
-            logging.info("Deploying training job to Vertex")
+        if self.target == TrainingTarget.VERTEX:
             self._run_on_vertex()
         else:
-            logging.info("Executing model trainer")
             self._run_locally()
 
     def _run_locally(self):
@@ -128,8 +143,13 @@ class Trainer():
             requirements: {self.pip_requirements}
             project: {self.edge_config.google_cloud_project.project_id}
             location: {self.edge_config.google_cloud_project.region}
-            staging_bucket: {self.vertex_training_bucket}
+            staging_bucket: {self.vertex_training_path}
             """)
+
+        environment_variables = {
+            "RUN_ON_VERTEX": "False",
+            "EDGE_CONFIG": str(self.edge_config)
+        }
 
         CustomJob.from_local_script(
             display_name=f"{self.name}-custom-training",
@@ -140,6 +160,6 @@ class Trainer():
             replica_count=1,
             project=self.edge_config.google_cloud_project.project_id,
             location=self.edge_config.google_cloud_project.region,
-            staging_bucket=self.vertex_training_bucket,
-            environment_variables={"RUN_ON_VERTEX": "False"}
+            staging_bucket=self.vertex_training_path,
+            environment_variables=environment_variables
         ).run()

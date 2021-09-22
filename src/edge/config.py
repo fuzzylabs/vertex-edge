@@ -70,6 +70,13 @@ class EdgeConfig:
         with open(path, "w") as f:
             f.write(to_yaml(self))
 
+    def __str__(self) -> str:
+        return to_yaml(self)
+
+    @classmethod
+    def from_string(cls: Type[T], string: str) -> T:
+        return from_yaml(EdgeConfig, string)
+            
     @classmethod
     def load(cls: Type[T], path: str) -> T:
         with open(path) as f:

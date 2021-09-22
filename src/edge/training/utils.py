@@ -17,6 +17,7 @@ def wrap_open(path: str, mode: str = "r"):
         return open(path, mode=mode)
 
 
+# TODO: remove
 def get_vertex_paths(_config: EdgeConfig, state: EdgeState):
     staging_path = os.path.join(state.storage.bucket_path, _config.storage_bucket.vertex_jobs_directory)
     output_path = os.path.join(staging_path, str(uuid.uuid4()))
