@@ -51,6 +51,7 @@ class Trainer():
     vertex_staging_path = None
     #vertex_output_path = None
     script_path = None
+    mongo_connection_string = None
     target = TrainingTarget.LOCAL
 
     def __init__(self, name: str):
@@ -97,10 +98,15 @@ class Trainer():
         # TODO: Experiment initialisation in its own function (but *must* be called during construction)
         self.experiment = Experiment(name, save_git_info=False)
 
-        mongo_connection_string = get_connection_string(
-            self.edge_config.google_cloud_project.project_id,
-            self.edge_config.experiments.mongodb_connection_string_secret
-        )
+        # TODO: Document env var
+        if os.environ.get("MONGO_CONNECTION_STRING"):
+            self.mongo_connection_string = os.environ.get("MONGO_CONNECTION_STRING")
+        else:
+            mongo_connection_string = get_connection_string(
+                self.edge_config.google_cloud_project.project_id,
+                self.edge_config.experiments.mongodb_connection_string_secret
+            )
+
         self.experiment.observers.append(MongoObserver(mongo_connection_string))
 
         @self.experiment.main
@@ -154,7 +160,8 @@ class Trainer():
 
         environment_variables = {
             "RUN_ON_VERTEX": "False",
-            "EDGE_CONFIG": self._get_encoded_config()
+            "EDGE_CONFIG": self._get_encoded_config(),
+            "MONGO_CONNECTION_STRING": self.mongo_connection_string
         }
 
         CustomJob.from_local_script(
