@@ -135,7 +135,7 @@ class Trainer():
     def _run_locally(self):
         ex_run = self.experiment._create_run()
         result = self.main()
-        parameters = self.parameters | ex_run.config
+        parameters = {**self.parameters, **ex_run.config}
 
         ex_run.log_scalar("score", result)
         ex_run(parameters)
