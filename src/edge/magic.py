@@ -59,7 +59,6 @@ class Trainer():
 
         # We need the path to the training script itself
         self.script_path = inspect.getframeinfo(sys._getframe(1)).filename
-        logging.info(self.script_path)
 
         # Determine our target training environment
         if os.environ.get("RUN_ON_VERTEX") == "True":
@@ -75,11 +74,9 @@ class Trainer():
             logging.info("Edge config will be loaded from environment variable EDGE_CONFIG_STRING")
             self.edge_config = self._decode_config_string(os.environ.get("EDGE_CONFIG"))
         else:
-            logging.info("Edge config will be loaded from a file")
+            logging.info("Edge config will be loaded from edge.yaml")
             # TODO: This isn't very stable. We should search for the config file.
             self.edge_config = EdgeConfig.load(edge.path.get_default_config_path_from_model(inspect.getframeinfo(sys._getframe(1)).filename))
-
-        logging.info(f"Edge configuration: {self.edge_config}")
 
         # Load the Edge state
         #self.edge_state = EdgeState.load(self.edge_config)
@@ -102,12 +99,12 @@ class Trainer():
         if os.environ.get("MONGO_CONNECTION_STRING"):
             self.mongo_connection_string = os.environ.get("MONGO_CONNECTION_STRING")
         else:
-            mongo_connection_string = get_connection_string(
+            self.mongo_connection_string = get_connection_string(
                 self.edge_config.google_cloud_project.project_id,
                 self.edge_config.experiments.mongodb_connection_string_secret
             )
 
-        self.experiment.observers.append(MongoObserver(mongo_connection_string))
+        self.experiment.observers.append(MongoObserver(self.mongo_connection_string))
 
         @self.experiment.main
         def ex_noop_main(c):
@@ -141,23 +138,9 @@ class Trainer():
         parameters = self.parameters | ex_run.config
 
         ex_run.log_scalar("score", result)
-
-        logging.info(f"RESULT {result}")
-        logging.info(f"PARAMETERS {parameters}")
-
         ex_run(parameters)
 
     def _run_on_vertex(self):
-        logging.info(f"""Deploying to vertex with the following:
-            name: {self.name}
-            script_path: {self.script_path}
-            container: {self.vertex_training_image}
-            requirements: {self.pip_requirements}
-            project: {self.edge_config.google_cloud_project.project_id}
-            location: {self.edge_config.google_cloud_project.region}
-            staging_bucket: {self.vertex_staging_path}
-            """)
-
         environment_variables = {
             "RUN_ON_VERTEX": "False",
             "EDGE_CONFIG": self._get_encoded_config(),
