@@ -174,4 +174,4 @@ class Trainer():
         return str(self.edge_config).replace("\n", "\\n")
 
     def _decode_config_string(self, s: str) -> EdgeConfig:
-        return EdgeConfig.from_string(s).replace("\\n", "\n")
+        return EdgeConfig.from_string(s.replace("\\n", "\n"))
