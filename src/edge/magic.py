@@ -50,11 +50,15 @@ class Trainer():
     vertex_training_image = "europe-docker.pkg.dev/cloud-aiplatform/training/scikit-learn-cpu.0-23:latest"
     vertex_staging_path = None
     #vertex_output_path = None
-    script_path = __file__
+    script_path = None
     target = TrainingTarget.LOCAL
 
     def __init__(self, name: str):
         self.name = name
+
+        # We need the path to the training script itself
+        self.script_path = inspect.getframeinfo(sys._getframe(1)).filename
+        logging.info(self.script_path)
 
         # Determine our target training environment
         if os.environ.get("RUN_ON_VERTEX") == "True":
@@ -68,7 +72,7 @@ class Trainer():
         # TODO: Document env var
         if os.environ.get("EDGE_CONFIG"):
             logging.info("Edge config will be loaded from environment variable EDGE_CONFIG_STRING")
-            self.edge_config = EdgeConfig.from_string(os.environ.get("EDGE_CONFIG"))
+            self.edge_config = self._decode_config_string(os.environ.get("EDGE_CONFIG"))
         else:
             logging.info("Edge config will be loaded from a file")
             # TODO: This isn't very stable. We should search for the config file.
@@ -150,7 +154,7 @@ class Trainer():
 
         environment_variables = {
             "RUN_ON_VERTEX": "False",
-            "EDGE_CONFIG": str(self.edge_config)
+            "EDGE_CONFIG": self._get_encoded_config()
         }
 
         CustomJob.from_local_script(
@@ -165,3 +169,9 @@ class Trainer():
             staging_bucket=self.vertex_staging_path,
             environment_variables=environment_variables
         ).run()
+
+    def _get_encoded_config(self) -> str:
+        return str(self.edge_config).replace("\n", "\\n")
+
+    def _decode_config_string(self, s: str) -> EdgeConfig:
+        return EdgeConfig.from_string(s).replace("\\n", "\n")
