@@ -12,18 +12,15 @@ from sacred.observers import MongoObserver
 from google.cloud import secretmanager_v1
 from google.cloud.aiplatform import CustomJob
 
+import edge.path
+#from edge.state import EdgeState
+from edge.config import EdgeConfig
+
 logging.basicConfig(level = logging.INFO)
 
 class TrainingTarget(Enum):
     LOCAL = "local"
     VERTEX = "vertex"
-
-"""
-TODO: These are helper functions that need to be moved elsewhere during refactoring
-"""
-import edge.path
-from edge.state import EdgeState
-from edge.config import ModelConfig, GCProjectConfig, EdgeConfig
 
 # TODO: should this be here? Need dependency injection
 def get_connection_string(project_id: str, secret_id: str) -> str:
@@ -43,15 +40,16 @@ class Trainer():
     # TODO: group together experiment variables and Vertex variables. Note when target is local, we don't need Vertex values
     experiment = None
     parameters = {}
-    edge_config = {}
+    edge_config = None
+    #edge_state = None
     name = None
     pip_requirements = [
         "sklearn",
         "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@release/v0.2.0"
     ]
     vertex_training_image = "europe-docker.pkg.dev/cloud-aiplatform/training/scikit-learn-cpu.0-23:latest"
-    vertex_training_path = None
-    vertex_output_path = None
+    vertex_staging_path = None
+    #vertex_output_path = None
     script_path = __file__
     target = TrainingTarget.LOCAL
 
@@ -59,7 +57,7 @@ class Trainer():
         self.name = name
 
         # Determine our target training environment
-        if os.environ.get("RUN_ON_VERTEX"):
+        if os.environ.get("RUN_ON_VERTEX") == "True":
             logging.info("Target training environment is Vertex")
             self.target = TrainingTarget.VERTEX
         else:
@@ -78,12 +76,16 @@ class Trainer():
 
         logging.info(f"Edge configuration: {self.edge_config}")
 
+        # Load the Edge state
+        #self.edge_state = EdgeState.load(self.edge_config)
+        #logging.info(f"Edge state: {self.edge_state}")
+
         # Determine correct values for running on Vertex
-        self.vertex_training_path = os.path.join(
+        self.vertex_staging_path = "gs://" + os.path.join(
             self.edge_config.storage_bucket.bucket_name,
             self.edge_config.storage_bucket.vertex_jobs_directory
         )
-        self.vertex_output_path = os.path.join(self.vertex_training_path, str(uuid.uuid4()))
+        #self.vertex_output_path = os.path.join(self.vertex_training_path, str(uuid.uuid4()))
 
         # Set up experiment tracking for this training job
         # TODO: Restore Git support
@@ -143,7 +145,7 @@ class Trainer():
             requirements: {self.pip_requirements}
             project: {self.edge_config.google_cloud_project.project_id}
             location: {self.edge_config.google_cloud_project.region}
-            staging_bucket: {self.vertex_training_path}
+            staging_bucket: {self.vertex_staging_path}
             """)
 
         environment_variables = {
@@ -160,6 +162,6 @@ class Trainer():
             replica_count=1,
             project=self.edge_config.google_cloud_project.project_id,
             location=self.edge_config.google_cloud_project.region,
-            staging_bucket=self.vertex_training_path,
+            staging_bucket=self.vertex_staging_path,
             environment_variables=environment_variables
         ).run()
