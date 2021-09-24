@@ -4,12 +4,13 @@ from setuptools import setup, find_packages
 
 setup(
     name="vertex:edge",
-    version="0.1.1",
+    version="0.1.114",
     url="https://github.com/fuzzylabs/vertex-edge",
     package_dir={'': 'src'},
     packages=find_packages("src/"),
     scripts=["edge", "src/vertex_edge.py"],
     include_package_data=True,
+    # TODO: Review the requirements
     install_requires=[
         "pyserde==0.4.0",
         "google-api-core==1.29.0",

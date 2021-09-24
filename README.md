@@ -432,3 +432,42 @@ Here's a brief guide to how this project is organised:
 * [edge](edge) - code for the vertex:edge tool.
 * [models](models) - each model has its own sub-directory under `models`, and within each model directory we have training code and the training pipeline.
 * [services](services) - models by themselves aren't useful without things that interact with the model. `services` contains deployable web services that interact with models.
+
+# Development guide
+
+## Python Package
+
+### Build
+
+TODO
+
+```
+./setup.py build
+./setup.py install
+```
+
+Or to package
+
+```
+python -m build
+```
+
+### Push to PyPi
+
+```
+twine upload dist/* --verbose
+```
+
+## Docker image
+
+### Build
+
+```
+docker build . -t fuzzylabs/edge
+```
+
+### Push
+
+```
+docker push fuzzylabs/edge
+```

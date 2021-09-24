@@ -22,13 +22,6 @@ class TrainingTarget(Enum):
     LOCAL = "local"
     VERTEX = "vertex"
 
-# TODO: should this be here? Need dependency injection
-def get_connection_string(project_id: str, secret_id: str) -> str:
-    client = secretmanager_v1.SecretManagerServiceClient()
-    secret_name = f"projects/{project_id}/secrets/{secret_id}/versions/latest"
-    response = client.access_secret_version(name=secret_name)
-    return response.payload.data.decode("UTF-8")
-
 """
 A Trainer encapsulates a model training script and its associated MLOps lifecycle
 
@@ -99,7 +92,8 @@ class Trainer():
         if os.environ.get("MONGO_CONNECTION_STRING"):
             self.mongo_connection_string = os.environ.get("MONGO_CONNECTION_STRING")
         else:
-            self.mongo_connection_string = get_connection_string(
+            # TODO: If experiment tracker isn't initialised, this fails
+            self.mongo_connection_string = self._get_mongo_connection_string(
                 self.edge_config.google_cloud_project.project_id,
                 self.edge_config.experiments.mongodb_connection_string_secret
             )
@@ -135,6 +129,7 @@ class Trainer():
     def _run_locally(self):
         ex_run = self.experiment._create_run()
         result = self.main()
+        # TODO: Python 3.9 has a new syntax for merging maps, but Vertex doesn't run 3.9 yet so we can't use it. See https://www.python.org/dev/peps/pep-0584/
         parameters = {**self.parameters, **ex_run.config}
 
         ex_run.log_scalar("score", result)
@@ -165,3 +160,9 @@ class Trainer():
 
     def _decode_config_string(self, s: str) -> EdgeConfig:
         return EdgeConfig.from_string(s.replace("\\n", "\n"))
+
+    def _get_mongo_connection_string(self) -> str:
+        client = secretmanager_v1.SecretManagerServiceClient()
+        secret_name = f"projects/{self.project_id}/secrets/{self.secret_id}/versions/latest"
+        response = client.access_secret_version(name=secret_name)
+        return response.payload.data.decode("UTF-8")

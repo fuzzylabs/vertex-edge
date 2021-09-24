@@ -7,6 +7,7 @@ pyserde==0.4.0
 google-cloud-container==2.4.1
 google-cloud-secret-manager==2.5.0
 google_cloud_aiplatform==1.1.1
+google_cloud_storage==1.38.0
 
 ## Data versioning
 
@@ -25,6 +26,7 @@ questionary==1.10.0
 
 #pylint
 #black
+#twine
 
 ## TODO: do we need these here?
 
