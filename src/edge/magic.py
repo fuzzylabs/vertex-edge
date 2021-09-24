@@ -92,11 +92,7 @@ class Trainer():
         if os.environ.get("MONGO_CONNECTION_STRING"):
             self.mongo_connection_string = os.environ.get("MONGO_CONNECTION_STRING")
         else:
-            # TODO: If experiment tracker isn't initialised, this fails
-            self.mongo_connection_string = self._get_mongo_connection_string(
-                self.edge_config.google_cloud_project.project_id,
-                self.edge_config.experiments.mongodb_connection_string_secret
-            )
+            self.mongo_connection_string = self._get_mongo_connection_string()
 
         self.experiment.observers.append(MongoObserver(self.mongo_connection_string))
 
@@ -162,7 +158,8 @@ class Trainer():
         return EdgeConfig.from_string(s.replace("\\n", "\n"))
 
     def _get_mongo_connection_string(self) -> str:
+        # TODO: If experiment tracker isn't initialised, this fails
         client = secretmanager_v1.SecretManagerServiceClient()
-        secret_name = f"projects/{self.project_id}/secrets/{self.secret_id}/versions/latest"
+        secret_name = f"projects/{self.edge_config.google_cloud_project.project_id}/secrets/{self.edge_config.experiments.mongodb_connection_string_secret}/versions/latest"
         response = client.access_secret_version(name=secret_name)
         return response.payload.data.decode("UTF-8")
