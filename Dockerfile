@@ -34,6 +34,8 @@ COPY MANIFEST.in MANIFEST.in
 COPY edge edge
 COPY src/ src/
 
+COPY src/edge/k8s/omniboard.yaml /omniboard.yaml
+
 RUN ./setup.py build
 RUN ./setup.py install
 

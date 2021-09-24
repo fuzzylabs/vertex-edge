@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="vertex:edge",
-    version="0.1.114",
+    version="0.1.116",
     url="https://github.com/fuzzylabs/vertex-edge",
     package_dir={'': 'src'},
     packages=find_packages("src/"),
