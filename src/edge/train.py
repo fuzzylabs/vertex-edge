@@ -94,7 +94,10 @@ class Trainer():
         else:
             self.mongo_connection_string = self._get_mongo_connection_string()
 
-        self.experiment.observers.append(MongoObserver(self.mongo_connection_string))
+        if self.mongo_connection_string is not None:
+            self.experiment.observers.append(MongoObserver(self.mongo_connection_string))
+        else:
+            logging.info("Experiment tracker has not been configured")
 
         @self.experiment.main
         def ex_noop_main(c):
@@ -158,8 +161,11 @@ class Trainer():
         return EdgeConfig.from_string(s.replace("\\n", "\n"))
 
     def _get_mongo_connection_string(self) -> str:
-        # TODO: If experiment tracker isn't initialised, this fails
-        client = secretmanager_v1.SecretManagerServiceClient()
-        secret_name = f"projects/{self.edge_config.google_cloud_project.project_id}/secrets/{self.edge_config.experiments.mongodb_connection_string_secret}/versions/latest"
-        response = client.access_secret_version(name=secret_name)
-        return response.payload.data.decode("UTF-8")
+        # Try to get the Mongo connection string, if available
+        try:
+            client = secretmanager_v1.SecretManagerServiceClient()
+            secret_name = f"projects/{self.edge_config.google_cloud_project.project_id}/secrets/{self.edge_config.experiments.mongodb_connection_string_secret}/versions/latest"
+            response = client.access_secret_version(name=secret_name)
+            return response.payload.data.decode("UTF-8")
+        except Exception as e:
+            return None
