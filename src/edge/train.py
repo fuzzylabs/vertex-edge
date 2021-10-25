@@ -138,8 +138,10 @@ class Trainer():
         environment_variables = {
             "RUN_ON_VERTEX": "False",
             "EDGE_CONFIG": self._get_encoded_config(),
-            "MONGO_CONNECTION_STRING": self.mongo_connection_string
         }
+
+        if self.mongo_connection_string is not None:
+            environment_variables["MONGO_CONNECTION_STRING"] = self.mongo_connection_string
 
         CustomJob.from_local_script(
             display_name=f"{self.name}-custom-training",
