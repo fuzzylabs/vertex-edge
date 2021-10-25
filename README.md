@@ -1,3 +1,21 @@
+- the first sentence on its own doesn't state why we're doing it, what problem it solves
+
+* Initially differentiate that we have two things - provision stuff, and gives you a way to train efficiently
+ - enabling a data scientist to do mlops
+ - without them having to recruit an mlops engineer
+ - the tool does two primary things
+ 
+* Principles
+ - As succinct as they can be - the motivations
+  
+* How
+
+
+
+
+
+
+
 <p align="center"><img src="./vertex-edge-logo.png" alt="Vertex Edge Logo" height="200"/></a></p>
 <p align="center">
 	<img src="https://img.shields.io/github/repo-size/fuzzylabs/vertex-edge" height="20"/></a>
@@ -457,6 +475,18 @@ python -m build
 ```
 twine upload dist/* --verbose
 ```
+
+### Testing locally
+
+```
+mkdir my_test_project
+cd my_test_project
+python -m venv env/
+source env/bin/activate
+pip install -e <path to tool source>
+```
+
+This will install the tool locally within a venv
 
 ## Docker image
 

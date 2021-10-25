@@ -166,7 +166,7 @@ def install_mongodb() -> (str, str):
 def install_omniboard() -> str:
     with SubStepTUI("Installing experiment tracker dashboard (Omniboard)"):
         try:
-            subprocess.check_output("find / -name 'omniboard.yaml' && kubectl apply -f /omniboard.yaml", stderr=subprocess.STDOUT, shell=True)
+            subprocess.check_output("kubectl apply -f /omniboard.yaml", stderr=subprocess.STDOUT, shell=True)
         except subprocess.CalledProcessError as e:
             raise EdgeException(f"Error occurred while applying Omniboard's configuration\n {e} {e.output}")
 
