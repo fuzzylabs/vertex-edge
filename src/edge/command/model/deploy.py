@@ -5,7 +5,7 @@ from edge.command.common.precommand_check import precommand_checks
 from edge.config import EdgeConfig
 from edge.exception import EdgeException
 from edge.state import EdgeState
-from edge.training.training import TrainedModel
+#from edge.training.training import TrainedModel
 from edge.tui import TUI, StepTUI, SubStepTUI
 from edge.vertex_deploy import vertex_deploy
 from edge.path import get_model_dvc_pipeline, get_vertex_model_json
@@ -38,17 +38,18 @@ def model_deploy(model_name: str):
                                                 f"Run `./edge.sh model init {model_name}` to initialise.")
                         endpoint_resource_name = state.models[model_name].endpoint_resource_name
                     with SubStepTUI("Checking that the model has been trained"):
-                        if not os.path.exists(get_vertex_model_json(model_name)):
-                            raise EdgeException(f"{get_vertex_model_json(model_name)} does not exist. "
-                                                "This means that the model has not been"
-                                                " trained. To train the model, "
-                                                f"run `dvc repro {get_model_dvc_pipeline(model_name)}`")
-                        with open(get_vertex_model_json(model_name)) as file:
-                            model = from_json(TrainedModel, file.read())
-                        if model.is_local:
-                            raise EdgeException("This model was trained locally, and hence cannot be deployed "
-                                                "on Vertex AI")
-                        model_resource_name = model.model_name
+                        # if not os.path.exists(get_vertex_model_json(model_name)):
+                        #     raise EdgeException(f"{get_vertex_model_json(model_name)} does not exist. "
+                        #                         "This means that the model has not been"
+                        #                         " trained. To train the model, "
+                        #                         f"run `dvc repro {get_model_dvc_pipeline(model_name)}`")
+                        # with open(get_vertex_model_json(model_name)) as file:
+                        #     model = from_json(TrainedModel, file.read())
+                        # if model.is_local:
+                        #     raise EdgeException("This model was trained locally, and hence cannot be deployed "
+                        #                         "on Vertex AI")
+                        # model_resource_name = model.model_name
+                        raise EdgeException("Model deployment is not currently supported")
                 vertex_deploy(endpoint_resource_name, model_resource_name, model_name)
 
                 state.models[model_name].deployed_model_resource_name = model_resource_name
