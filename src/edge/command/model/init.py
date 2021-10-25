@@ -2,7 +2,6 @@ import os
 import time
 from edge.command.common.precommand_check import precommand_checks
 from edge.config import EdgeConfig, ModelConfig
-from edge.docker import build_docker, push_docker
 from edge.enable_api import enable_service_api
 from edge.endpoint import setup_endpoint
 from edge.exception import EdgeException

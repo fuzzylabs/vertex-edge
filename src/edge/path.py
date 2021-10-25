@@ -1,5 +1,6 @@
 import os
 
+# TODO: Document all
 
 def get_default_config_path():
     # TODO: Document env var
