@@ -45,14 +45,6 @@ class ModelConfig:
     serving_container_image_uri: str = "europe-docker.pkg.dev/cloud-aiplatform/prediction/sklearn-cpu.0-23:latest"
 
 
-@deserialize
-@serialize
-@dataclass
-class WebAppConfig:
-    webapp_server_image: str
-    cloud_run_service_name: str
-
-
 T = TypeVar("T", bound="EdgeConfig")
 
 
@@ -64,7 +56,6 @@ class EdgeConfig:
     storage_bucket: StorageBucketConfig
     experiments: Optional[SacredConfig] = None
     models: Dict[str, ModelConfig] = field(default_factory=dict)
-    web_app: Optional[WebAppConfig] = None
 
     def save(self, path: str):
         with open(path, "w") as f:
