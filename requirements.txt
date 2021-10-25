@@ -22,14 +22,5 @@ pymongo==3.11.4
 
 questionary==1.10.0
 
-## Dev tools
-
-#pylint
-#black
-#twine
-
-## TODO: do we need these here?
-
-#python-mnist==0.7
+## TODO: do we need Dill?
 #dill==0.3.4
-#scikit-learn==0.24.2

@@ -455,6 +455,12 @@ Here's a brief guide to how this project is organised:
 
 ## Python Package
 
+### Requirements
+
+```
+pip install -r requirements-dev.txt
+```
+
 ### Build
 
 TODO
