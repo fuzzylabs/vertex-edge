@@ -86,7 +86,7 @@ class Trainer():
         # TODO: Restore Git support
         # TODO: If training target is Vertex, we don't need to init an experiment
         # TODO: Experiment initialisation in its own function (but *must* be called during construction)
-        self.experiment = Experiment(name, save_git_info=False)
+        self.experiment = Experiment(name, save_git_info=True)
 
         # TODO: Document env var
         if os.environ.get("MONGO_CONNECTION_STRING"):
