@@ -41,8 +41,8 @@ class SacredConfig:
 class ModelConfig:
     name: str
     endpoint_name: str
-    training_container_image_uri: str = "europe-docker.pkg.dev/cloud-aiplatform/training/scikit-learn-cpu.0-23:latest"
-    serving_container_image_uri: str = "europe-docker.pkg.dev/cloud-aiplatform/prediction/sklearn-cpu.0-23:latest"
+    training_container_image_uri: str = "europe-docker.pkg.dev/vertex-ai/training/tf-cpu.2-6:latest"
+    serving_container_image_uri: str = "europe-docker.pkg.dev/vertex-ai/serving/tf2-cpu.2-6:latest"
 
 
 T = TypeVar("T", bound="EdgeConfig")

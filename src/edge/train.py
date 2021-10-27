@@ -32,7 +32,7 @@ TODO: How can we be even better at handling experiment config?
 class Trainer():
     # TODO: group together experiment variables and Vertex variables. Note when target is local, we don't need Vertex values
     experiment = None
-    parameters = {}
+    experiment_run = None
     edge_config = None
     #edge_state = None
     name = None
@@ -112,7 +112,13 @@ class Trainer():
         raise NotImplementedError("The main method for this trainer has not been implemented")
 
     def set_parameter(self, key: str, value: Any):
-        self.parameters[key] = value
+        self.experiment_run.config[key] = value
+
+    def get_parameter(self, key: str) -> Any:
+        return self.experiment_run.config[key]
+
+    def log_scalar(self, key: str, value: Any):
+        self.experiment_run.log_scalar(key, value)
 
     """
     Executes the training script and tracks experiment details
@@ -126,13 +132,11 @@ class Trainer():
             self._run_locally()
 
     def _run_locally(self):
-        ex_run = self.experiment._create_run()
+        self.experiment_run = self.experiment._create_run()
         result = self.main()
-        # TODO: Python 3.9 has a new syntax for merging maps, but Vertex doesn't run 3.9 yet so we can't use it. See https://www.python.org/dev/peps/pep-0584/
-        parameters = {**self.parameters, **ex_run.config}
 
-        ex_run.log_scalar("score", result)
-        ex_run(parameters)
+        self.experiment_run.log_scalar("score", result)
+        self.experiment_run({})
 
     def _run_on_vertex(self):
         environment_variables = {
