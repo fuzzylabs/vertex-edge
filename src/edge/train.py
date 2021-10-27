@@ -36,13 +36,16 @@ class Trainer():
     edge_config = None
     #edge_state = None
     name = None
+    # TODO: infer requirements
+    # TODO: we shouldn't need sklearn (or equivalent) as a requirement!
     pip_requirements = [
         "sklearn",
         "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@release/v0.2.0"
     ]
-    vertex_training_image = "europe-docker.pkg.dev/cloud-aiplatform/training/scikit-learn-cpu.0-23:latest"
+    # TODO: get this from config
+    vertex_training_image = "europe-docker.pkg.dev/vertex-ai/training/tf-cpu.2-6:latest"
     vertex_staging_path = None
-    #vertex_output_path = None
+    vertex_output_path = None
     script_path = None
     mongo_connection_string = None
     target = TrainingTarget.LOCAL
@@ -80,7 +83,7 @@ class Trainer():
             self.edge_config.storage_bucket.bucket_name,
             self.edge_config.storage_bucket.vertex_jobs_directory
         )
-        #self.vertex_output_path = os.path.join(self.vertex_training_path, str(uuid.uuid4()))
+        self.vertex_output_path = os.path.join(self.vertex_training_path, str(uuid.uuid4()))
 
         # Set up experiment tracking for this training job
         # TODO: Restore Git support
@@ -119,6 +122,9 @@ class Trainer():
 
     def log_scalar(self, key: str, value: Any):
         self.experiment_run.log_scalar(key, value)
+
+    def get_model_save_path(self):
+        return self.vertex_output_path
 
     """
     Executes the training script and tracks experiment details
