@@ -15,6 +15,7 @@ from google.cloud.aiplatform import CustomJob
 import edge.path
 #from edge.state import EdgeState
 from edge.config import EdgeConfig
+from edge.exception import EdgeException
 
 logging.basicConfig(level = logging.INFO)
 
@@ -36,14 +37,10 @@ class Trainer():
     edge_config = None
     #edge_state = None
     name = None
-    # TODO: infer requirements
-    # TODO: we shouldn't need sklearn (or equivalent) as a requirement!
+    # TODO: Remove hard-coded Git link
     pip_requirements = [
-        "sklearn",
         "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@release/v0.2.0"
     ]
-    # TODO: get this from config
-    vertex_training_image = "europe-docker.pkg.dev/vertex-ai/training/tf-cpu.2-6:latest"
     vertex_staging_path = None
     vertex_output_path = None
     script_path = None
@@ -74,6 +71,12 @@ class Trainer():
             # TODO: This isn't very stable. We should search for the config file.
             self.edge_config = EdgeConfig.load(edge.path.get_default_config_path_from_model(inspect.getframeinfo(sys._getframe(1)).filename))
 
+        # Extract the model configuration and check if the model has been initialised
+        if name in self.edge_config.models:
+            self.model_config = self.edge_config.models[name]
+        else:
+            raise EdgeException(f"Model with name {name} could not be found in Edge config. Perhaps it hasn't been initialised")
+
         # Load the Edge state
         #self.edge_state = EdgeState.load(self.edge_config)
         #logging.info(f"Edge state: {self.edge_state}")
@@ -83,7 +86,7 @@ class Trainer():
             self.edge_config.storage_bucket.bucket_name,
             self.edge_config.storage_bucket.vertex_jobs_directory
         )
-        self.vertex_output_path = os.path.join(self.vertex_training_path, str(uuid.uuid4()))
+        self.vertex_output_path = os.path.join(self.vertex_staging_path, str(uuid.uuid4()))
 
         # Set up experiment tracking for this training job
         # TODO: Restore Git support
@@ -100,7 +103,7 @@ class Trainer():
         if self.mongo_connection_string is not None:
             self.experiment.observers.append(MongoObserver(self.mongo_connection_string))
         else:
-            logging.info("Experiment tracker has not been configured")
+            logging.info("Experiment tracker has not been initialised")
 
         @self.experiment.main
         def ex_noop_main(c):
@@ -124,6 +127,7 @@ class Trainer():
         self.experiment_run.log_scalar(key, value)
 
     def get_model_save_path(self):
+        # TODO: Support local paths
         return self.vertex_output_path
 
     """
@@ -134,6 +138,7 @@ class Trainer():
     def run(self):
         if self.target == TrainingTarget.VERTEX:
             self._run_on_vertex()
+            self._create_model_on_vertex()
         else:
             self._run_locally()
 
@@ -156,7 +161,7 @@ class Trainer():
         CustomJob.from_local_script(
             display_name=f"{self.name}-custom-training",
             script_path=self.script_path,
-            container_uri=self.vertex_training_image,
+            container_uri=self.model_config.training_container_image_uri,
             requirements=self.pip_requirements,
             #args=training_script_args,
             replica_count=1,
@@ -165,6 +170,15 @@ class Trainer():
             staging_bucket=self.vertex_staging_path,
             environment_variables=environment_variables
         ).run()
+
+    def _create_model_on_vertex(self):
+        model = Model.upload(
+            display_name=self.name,
+            project=self.edge_config.google_cloud_project.project_id,
+            location=self.edge_config.google_cloud_project.region,
+            serving_container_image_uri=self.model_config.serving_container_image_uri,
+            artifact_uri=self.get_model_save_path()
+        )
 
     def _get_encoded_config(self) -> str:
         return str(self.edge_config).replace("\n", "\\n")

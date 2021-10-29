@@ -8,4 +8,4 @@ class MyTrainer(Trainer):
 
         return 0 # return your model score here
 
-MyTrainer("{{cookiecutter.model_name}}-model-training").run()
+MyTrainer("{{cookiecutter.model_name}}").run()
