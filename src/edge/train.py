@@ -46,6 +46,8 @@ class Trainer():
     script_path = None
     mongo_connection_string = None
     target = TrainingTarget.LOCAL
+    model_config = None
+    model_id = None
 
     def __init__(self, name: str):
         self.name = name
@@ -81,12 +83,17 @@ class Trainer():
         #self.edge_state = EdgeState.load(self.edge_config)
         #logging.info(f"Edge state: {self.edge_state}")
 
-        # Determine correct values for running on Vertex
+        if os.environ.get("MODEL_ID"):
+            self.model_id = os.environ.get("MODEL_ID")
+        else:
+            self.model_id = uuid.uuid4()
+        
+        # Determine correct paths for Vertex running
         self.vertex_staging_path = "gs://" + os.path.join(
             self.edge_config.storage_bucket.bucket_name,
             self.edge_config.storage_bucket.vertex_jobs_directory
         )
-        self.vertex_output_path = os.path.join(self.vertex_staging_path, str(uuid.uuid4()))
+        self.vertex_output_path = os.path.join(self.vertex_staging_path, str(self.model_id))
 
         # Set up experiment tracking for this training job
         # TODO: Restore Git support
@@ -153,6 +160,7 @@ class Trainer():
         environment_variables = {
             "RUN_ON_VERTEX": "False",
             "EDGE_CONFIG": self._get_encoded_config(),
+            "MODEL_ID": self.model_id
         }
 
         if self.mongo_connection_string is not None:
