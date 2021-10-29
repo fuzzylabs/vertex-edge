@@ -5,8 +5,11 @@ import uuid
 import inspect
 import logging
 from typing import Optional, Any
+from dataclasses import dataclass
 from enum import Enum
 
+from serde import serialize, deserialize
+from serde.json import to_json
 from sacred import Experiment
 from sacred.observers import MongoObserver
 from google.cloud import secretmanager_v1
@@ -22,6 +25,26 @@ logging.basicConfig(level = logging.INFO)
 class TrainingTarget(Enum):
     LOCAL = "local"
     VERTEX = "vertex"
+
+@deserialize
+@serialize
+@dataclass
+class TrainedModel:
+    model_name: Optional[str]
+    is_local: bool = False
+
+    @classmethod
+    def from_vertex_model(cls, model: Model):
+        return TrainedModel(
+            model_name=model.resource_name,
+        )
+
+    @classmethod
+    def from_local_model(cls):
+        return TrainedModel(
+            model_name=None,
+            is_local=True,
+        )
 
 """
 A Trainer encapsulates a model training script and its associated MLOps lifecycle
@@ -140,14 +163,20 @@ class Trainer():
     """
     Executes the training script and tracks experiment details
     """
-    # TODO: Instead of on_vertex, have a target, which can be various things
-    # TODO: What's the best way to distinguish local and vertex runs? this way is a bit confusing
     def run(self):
-        if self.target == TrainingTarget.VERTEX:
-            self._run_on_vertex()
-            self._create_model_on_vertex()
-        else:
-            self._run_locally()
+        json_path = os.path.join(
+            os.path.dirname(self.script_path),
+            "trained_model.json"
+        )
+
+        with open(json_path, "w") as train_json:
+            if self.target == TrainingTarget.VERTEX:
+                self._run_on_vertex()
+                model = self._create_model_on_vertex()
+                train_json.write(to_json(TrainedModel.from_vertex_model(model)))
+            else:
+                self._run_locally()
+                train_json.write(to_json(TrainedModel.from_local_model()))
 
     def _run_locally(self):
         self.experiment_run = self.experiment._create_run()
@@ -160,7 +189,7 @@ class Trainer():
         environment_variables = {
             "RUN_ON_VERTEX": "False",
             "EDGE_CONFIG": self._get_encoded_config(),
-            "MODEL_ID": self.model_id
+            "MODEL_ID": str(self.model_id)
         }
 
         if self.mongo_connection_string is not None:
@@ -180,7 +209,7 @@ class Trainer():
         ).run()
 
     def _create_model_on_vertex(self):
-        model = Model.upload(
+        return Model.upload(
             display_name=self.name,
             project=self.edge_config.google_cloud_project.project_id,
             location=self.edge_config.google_cloud_project.region,
