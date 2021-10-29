@@ -10,7 +10,7 @@ from enum import Enum
 from sacred import Experiment
 from sacred.observers import MongoObserver
 from google.cloud import secretmanager_v1
-from google.cloud.aiplatform import CustomJob
+from google.cloud.aiplatform import Model, CustomJob
 
 import edge.path
 #from edge.state import EdgeState
