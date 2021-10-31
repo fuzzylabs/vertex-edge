@@ -1,7 +1,0 @@
-stages:
-  train:
-    cmd: python train.py
-    deps:
-      - train.py
-    outs:
-      - trained_model.json

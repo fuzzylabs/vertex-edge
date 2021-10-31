@@ -39,7 +39,7 @@ def create_model_from_template(model_name: str, force: bool = False):
                     with SubStepTUI("Choosing model pipeline template", status=TUIStatus.NEUTRAL) as substep:
                         substep.set_dirty()
                         templates = {
-                            "sklearn": "sklearn_model",
+                            "tensorflow": "tensorflow_model",
                         }
                         pipeline_template = questionary.select(
                             "Choose model template",
