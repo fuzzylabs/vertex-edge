@@ -6,9 +6,8 @@
 
 # Connecting the Vertices on GCP
 
-Adopting MLOps into a data science workflow takes requires specialist knowledge of cloud engineering that data scientists don't often possess. **Edge** makes MLOps adoption easy for data scientists. It can set up tools like experiment tracking and data versioning for you, and moreover it helps you to create MLOps-enabled training pipelines, that run seamlessly in [Google Vertex](https://cloud.google.com/vertex-ai/docs/start) as well as locally.
+Adopting MLOps into a data science workflow requires specialist knowledge of cloud engineering. As a data scientist, you just want to train your models and get on with your life. **vertex:edge** helps data scientists adopt MLOps into their workflows. It can set up tools like experiment tracking and data versioning for you, and moreover it helps you to create MLOps-enabled training pipelines, that run seamlessly in [Google Vertex](https://cloud.google.com/vertex-ai/docs/start) as well as locally.
 
-<!--* Supports a range of machine learning frameworks.-->
 * **Seamless** training in the cloud and locally.
 * **Easily adapt** your existing models to train on Vertex.
 * **Plugs in to** experiment tracking and data version control.
@@ -23,11 +22,17 @@ We've also provided a number of example models in a separate repository, see [Ve
 
 ## Table of Contents
 
-* **[Getting started](#getting_started)** - a step-by-step guide to training and deploying a model to Vertex using _edge_.
+* **[Getting started](#getting-started)** - a step-by-step guide to training and deploying a model to Vertex using vertex:edge.
+  * **[Pre-requisites](#pre-requisites)**
+  * **[Preparation](#preparation)**
+  * **[Setting up GCP environment](#setting-up-gcp-environment)**
+  * **[Authenticating with GCP](#authenticating-with-gcp)**
+  * **[Building a simple model](#building-a-simple-model)**
 
 Further documentation
 
 * **[Contributing](CONTRIBUTING.md)** - how to contribute to vertex:edge.
+* **[Guide for developers](DEVELOPERS.md)** - some technical guidance for developers who wish to contribute to vertex:edge.
 * **[Ready-made examples](https://github.com/fuzzylabs/vertex-edge-examples)**.
 
 ## Feedback and contributions
@@ -95,7 +100,9 @@ Finally, you need to run one more command to complete authentication:
 gcloud auth application-default login
 ```
 
-## Installing vertex:edge
+## Training a model
+
+### Installing vertex:edge
 
 We'll use PIP to install _Edge_:
 
@@ -111,7 +118,7 @@ edge --help
 
 **Note** that when you run `edge` for the first time, it will download a Docker image (`fuzzylabs/edge`), which might take some time to complete. All Edge commands run inside Docker.
 
-## Initialising vertex:edge
+### Initialising vertex:edge
 
 Before you can use vertex:edge to train models, you'll need to initialise it (this only needs to be done once).
 
@@ -128,9 +135,9 @@ You might wonder what initialisation actually _does_. It sets up two things:
 * Creates a configuration file in your project directory, called `edge.yaml`. The configuration includes details about your GCP environment, the models that you have registered, and the cloud storage bucket.
 * Creates a _state file_. The state file lives in the cloud storage bucket, and its purpose is to make sure that only one person can modify the GCP environment at any one time.
 
-## Training a model
+### Building a simple model
 
-### Initialisation
+#### Initialisation
 
 First let's initialise a new model. This is enables Edge to keep track of the model's lifecycle.
 
@@ -140,7 +147,7 @@ edge model init hello-world
 
 If you check your `config.yaml` file now, you should see that your model has been added. Note that you won't see anything new appear in the Google Cloud Console until after the model has been trained, which we'll do shortly.
 
-### Using model templates
+#### Using model templates
 
 We're going to use the [SKLearn](https://scikit-learn.org/stable/index.html) framework for this example, so let's go ahead and install that now:
 
@@ -156,7 +163,7 @@ edge model template hello-world
 
 You will be asked which framework you want to use, so select `sklearn`.
 
-### Filling in the model code
+#### Filling in the model code
 
 There will now be a Python script named `train.py` inside `models/hello-world`. Open this script in your favourite editor or IDE. It looks like this:
 
@@ -196,7 +203,7 @@ class IrisTrainer(Trainer):
 IrisTrainer("iris-svc-model").run()
 ```
 
-### Training the model
+#### Training the model
 
 At this point you can train the model simply by running
 
