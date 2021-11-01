@@ -32,7 +32,8 @@ We've also provided a number of example models in a separate repository, see [Ve
   * **[Preparation](#preparation)**
   * **[Setting up GCP environment](#setting-up-gcp-environment)**
   * **[Authenticating with GCP](#authenticating-with-gcp)**
-  * **[Building a simple model](#building-a-simple-model)**
+* **[Building a simple model](#building-a-simple-model)**
+* **[Tracking experiments](#tracking-experiments)**
 
 Further documentation
 
@@ -105,9 +106,9 @@ Finally, you need to run one more command to complete authentication:
 gcloud auth application-default login
 ```
 
-## Building a simple model
+# Building a simple model
 
-### Installing vertex:edge
+## Installing vertex:edge
 
 We'll use PIP to install _vertex:edge_. Before doing this, it's a good idea to run `pip install --upgrade-pip` to ensure that you have the most recent PIP version.
 
@@ -125,7 +126,7 @@ edge --help
 
 **Note** that when you run `edge` for the first time, it will download a Docker image (`fuzzylabs/edge`), which might take some time to complete. All Edge commands run inside Docker.
 
-### Initialising vertex:edge
+## Initialising vertex:edge
 
 Before you can use vertex:edge to train models, you'll need to initialise it. This only needs to be done once, whenever you start a new project.
 
@@ -148,9 +149,9 @@ You might wonder what initialisation actually _does_:
 * It creates a configuration file in your project directory, called `edge.yaml`. The configuration includes details about your GCP environment, the models that you have created, and the cloud storage bucket.
 * And creates a _state file_. This lives in the cloud storage bucket, and it is used by vertex:edge to keep track of everything that it has deployed or trained.
 
-### Training a model
+## Training a model
 
-#### Initialisation
+### Initialisation
 
 We're going to use the [TensorFlow](https://www.tensorflow.org) framework for this example, so let's go ahead and install that now:
 
@@ -166,7 +167,7 @@ edge model init hello-world
 
 If you check your `config.yaml` file now, you will see that a model has been added. Note that you won't see anything new appear in the Google Cloud Console until after the model has actually been trained, which we'll do next.
 
-#### Writing a model training script
+### Writing a model training script
 
 To begin with, we can generate an outline of our model training code using a template:
 
@@ -206,69 +207,24 @@ Now let's create something a bit more interesting. A simple classifier:
 TODO
 ```
 
-#### Training the model
+### Training and deploying the model
 
-At this point you can train the model simply by running
+Now we can train the model simply by running
 
 ```
 python models/hello-world/train.py
 ```
 
-This will run the training script locally.
+Which will run the training script locally - i.e. on your computer. That's fine if your model is reasonably simple, but for more compute-intensive models we want to use the on-demand compute available in Google Vertex.
 
-# Development guide
-
-## Python Package
-
-### Requirements
+The good news is that you don't need to modify the code in any way in order to train the model on Vertex, because vertex:edge figures out how to do package the training script and run it for you. All you run is this:
 
 ```
-pip install -r requirements-dev.txt
+RUN_ON_VERTEX=True python models/hello-world/train.py
 ```
 
-### Build
+
+
+# Tracking experiments
 
 TODO
-
-```
-./setup.py build
-./setup.py install
-```
-
-Or to package
-
-```
-python -m build
-```
-
-### Push to PyPi
-
-```
-twine upload dist/* --verbose
-```
-
-### Testing locally
-
-```
-mkdir my_test_project
-cd my_test_project
-python -m venv env/
-source env/bin/activate
-pip install -e <path to tool source>
-```
-
-This will install the tool locally within a venv
-
-## Docker image
-
-### Build
-
-```
-docker build . -t fuzzylabs/edge
-```
-
-### Push
-
-```
-docker push fuzzylabs/edge
-```
