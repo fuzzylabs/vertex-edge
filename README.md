@@ -13,6 +13,11 @@ Adopting MLOps into a data science workflow requires specialist knowledge of clo
 * **Plugs in to** experiment tracking and data version control.
 * **Plays nicely with** CI/CD and infrastructure-as-code frameworks.
 
+There are two pieces to vertex:edge:
+
+* A command line tool that can be used to set up your MLOps infrastructure in Google Cloud.
+* A Python library that can be used in your model training scripts to help you train those models on Google Vertex.
+
 In this repository you will find:
 
 * Source code and documentation for the tool itself.
@@ -51,7 +56,7 @@ By the end of this guide you'll have trained and deployed a model to GCP.
 * [Docker](https://docs.docker.com/get-docker) (version 18 or greater).
 * [gcloud command line tool](https://cloud.google.com/sdk/docs/install).
 * Python, at least version 3.8.
-* PIP, at least version 21.2.0. It's a good idea to run `pip install --upgrade-pip` to ensure that you have the most recent version.
+* PIP, at least version 21.2.0.
 
 ## Preparation
 
@@ -100,11 +105,13 @@ Finally, you need to run one more command to complete authentication:
 gcloud auth application-default login
 ```
 
-## Training a model
+## Building a simple model
 
 ### Installing vertex:edge
 
-We'll use PIP to install _Edge_:
+We'll use PIP to install _vertex:edge_. Before doing this, it's a good idea to run `pip install --upgrade-pip` to ensure that you have the most recent PIP version.
+
+To install vertex_edge, run:
 
 ```
 pip install vertex-edge
@@ -120,50 +127,54 @@ edge --help
 
 ### Initialising vertex:edge
 
-Before you can use vertex:edge to train models, you'll need to initialise it (this only needs to be done once).
+Before you can use vertex:edge to train models, you'll need to initialise it. This only needs to be done once, whenever you start a new project.
 
 ```
 edge init
 ```
 
-The initialisation step will first check that your GCP environment is setup correctly and it will confirm your choice of project name and region, so that you don't accidentally install things to the wrong GCP environment.
+The initialisation step will first verify that your GCP environment is setup correctly and it will confirm your choice of project name and region, so that you don't accidentally install things to the wrong GCP environment.
 
-It will ask you to choose a name for a cloud storage bucket. This bucket is used for tracking the vertex:edge state, for data version control and for model assets. Keep in mind that on GCP, storage bucket names are **globally unique**, so you might find that the name you want to use is already taken (in which case vertex:edge will give you an error message). For more information please see the [official GCP documentation](https://cloud.google.com/storage/docs/naming-buckets).
+It will ask you to choose a name for a cloud storage bucket. This bucket is used for a number of things:
 
-You might wonder what initialisation actually _does_. It sets up two things:
+* Tracking the state of your project.
+* Storing model assets.
+* Storing versioned data.
 
-* Creates a configuration file in your project directory, called `edge.yaml`. The configuration includes details about your GCP environment, the models that you have registered, and the cloud storage bucket.
-* Creates a _state file_. The state file lives in the cloud storage bucket, and its purpose is to make sure that only one person can modify the GCP environment at any one time.
+Keep in mind that on GCP, storage bucket names are **globally unique**, so you need to choose a name that isn't already taken. For more information please see the [official GCP documentation](https://cloud.google.com/storage/docs/naming-buckets).
 
-### Building a simple model
+You might wonder what initialisation actually _does_:
+
+* It creates a configuration file in your project directory, called `edge.yaml`. The configuration includes details about your GCP environment, the models that you have created, and the cloud storage bucket.
+* And creates a _state file_. This lives in the cloud storage bucket, and it is used by vertex:edge to keep track of everything that it has deployed or trained.
+
+### Training a model
 
 #### Initialisation
 
-First let's initialise a new model. This is enables Edge to keep track of the model's lifecycle.
+We're going to use the [TensorFlow](https://www.tensorflow.org) framework for this example, so let's go ahead and install that now:
+
+```
+pip install tensorflow
+```
+
+Next we initialise a new model, which makes vertex:edge aware of the new model.
 
 ```
 edge model init hello-world
 ```
 
-If you check your `config.yaml` file now, you should see that your model has been added. Note that you won't see anything new appear in the Google Cloud Console until after the model has been trained, which we'll do shortly.
+If you check your `config.yaml` file now, you will see that a model has been added. Note that you won't see anything new appear in the Google Cloud Console until after the model has actually been trained, which we'll do next.
 
-#### Using model templates
+#### Writing a model training script
 
-We're going to use the [SKLearn](https://scikit-learn.org/stable/index.html) framework for this example, so let's go ahead and install that now:
-
-```
-pip install sklearn
-```
-
-And then we can generate an outline of our model training code using a template:
+To begin with, we can generate an outline of our model training code using a template:
 
 ```
 edge model template hello-world
 ```
 
-You will be asked which framework you want to use, so select `sklearn`.
-
-#### Filling in the model code
+You will be asked which framework you want to use, so select `tensorflow`.
 
 There will now be a Python script named `train.py` inside `models/hello-world`. Open this script in your favourite editor or IDE. It looks like this:
 
@@ -178,29 +189,21 @@ class MyTrainer(Trainer):
 
         return 0 # return your model score here
 
-MyTrainer("hello-world-model-training").run()
+MyTrainer("hello-world").run()
 ```
 
-Let's modify this to train a simple classifier:
+Every model training script needs to have the basic structure shown above. Let's break this down a little bit:
+
+* We start by importing the class `Trainer` from the vertex:edge library.
+* We define a training class. This class can have any name you like, as long as it extends `Trainer`.
+* The `Trainer` class provides a method called `main`, and this is where we write all of the model training logic.
+* We have the ability to set parameters and save performance metrics for experiment tracking - more on this shortly.
+* At the end, we just need one more line to instantiate and run our training class.
+
+Now let's create something a bit more interesting. A simple classifier:
 
 ```python
-from edge.magic import Trainer
-from sklearn import datasets
-from sklearn.svm import SVC
-
-class IrisTrainer(Trainer):
-    def main(self):
-        self.set_parameter("gamma", "scale")
-
-        iris = datasets.load_iris()
-        clf = SVC(gamma="scale")
-        X, y = iris.data, iris.target_names[iris.target]
-
-        clf.fit(X, y)
-
-        return clf.score(X, y)
-
-IrisTrainer("iris-svc-model").run()
+TODO
 ```
 
 #### Training the model
