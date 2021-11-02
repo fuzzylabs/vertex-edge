@@ -100,7 +100,9 @@ We can add experiment tracking with just one command:
 edge experiments init
 ```
 
-Whether you train locally or in Vertex, all of your training runs will be logged to the experiment tracker. You can find the tracker dashboard using:
+With experiment tracking enabled, every time you train a model, the details of the training run will be recorded, including performance metrics and training parameters.
+
+You can view all of these experiments in a dashboard. To get the dashboard URL, run:
 
 ```
 edge experiments get-dashboard
@@ -115,6 +117,7 @@ edge experiments get-dashboard
 * [Project Setup](tutorials/setup.md)
 * [Training and Deploying a Model to GCP](tutorials/train_deploy.md)
 * [Tracking your experiments](tutorials/experiment_tracking.md)
+* [Versioning your data](tutorials/versioning_data.md)
 
 # Contributing
 
