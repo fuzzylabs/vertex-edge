@@ -14,7 +14,7 @@ Adopting MLOps into a data science workflow requires specialist knowledge of clo
 
 ## Contents
 
-* **[Why vertex:edge](#why-vertex:edge)**?
+* **[Why vertex:edge?](#why-vertexedge)**
 * **[Pre-requisites](#pre-requisites)**
 * **[Quick-start](#quick-start)**
 * **[Tutorials](#tutorials)**
