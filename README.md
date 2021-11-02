@@ -12,18 +12,13 @@ Adopting MLOps into a data science workflow requires specialist knowledge of clo
     <img src="demo.gif"/>
 </p>
 
-There are two parts to **vertex:edge**:
-
-* A command line tool that can be used to set up your MLOps infrastructure in Google Cloud.
-* A Python library that can be used in your model training scripts to help you train those models on Google Vertex.
-
 ## Contents
 
-* **[Why vertex:edge](#why-vertex:edge?)**?
-* Pre-requisites
-* Quick-start
-* Tutorials
-* Contributing
+* **[Why vertex:edge](#why-vertex:edge)**?
+* **[Pre-requisites](#pre-requisites)**
+* **[Quick-start](#quick-start)**
+* **[Tutorials](#tutorials)**
+* **[Contributing](#contributing)**
 
 # Why vertex:edge?
 
