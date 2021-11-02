@@ -6,7 +6,7 @@
 
 # Vertex:Edge
 
-Adopting MLOps into a data science workflow requires specialist knowledge of cloud engineering. As a data scientist, you just want to train your models and get on with your life. **vertex:edge** provides an environment for training and deploying models on Google Cloud that leverages the best available open-source MLOps to track your experiments and version your data.
+Adopting MLOps into a data science workflow requires specialist knowledge of cloud engineering. As a data scientist, you just want to train your models and get on with your life. **vertex:edge** provides an environment for training and deploying models on Google Cloud that leverages the best available open-source MLOps tools to track your experiments and version your data.
 
 <p align="center">
     <img src="demo.gif"/>
@@ -22,7 +22,13 @@ Adopting MLOps into a data science workflow requires specialist knowledge of clo
 
 # Why vertex:edge?
 
+**vertex:edge** is a tool that sits on top of Vertex (Google's cloud AI platform). Ordinarily, training and deploying models with Vertex requires a fair amount of repetitive work, and moreover the tooling provided by Vertex for things like data versioning and experiment tracking [aren't quite up-to-scratch](https://fuzzylabs.ai/blog/vertex-ai-the-hype).
 
+**vertex:edge** addresses a number of challenges:
+
+* Training and deploying a model on Vertex with minimal effort.
+* Setting up useful MLOps tools such as experiment trackers in Google Cloud, without needing a lot of cloud engineering knowledge.
+* Seamlessly integrating MLOps tools into machine learning workflows.
 
 # Pre-requisites
 
@@ -99,6 +105,10 @@ Whether you train locally or in Vertex, all of your training runs will be logged
 ```
 edge experiments get-dashboard
 ```
+
+<p align="center">
+    <img src="omniboard-screenshot.png"/>
+</p>
 
 # Tutorials
 
