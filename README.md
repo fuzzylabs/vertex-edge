@@ -30,6 +30,12 @@ Adopting MLOps into a data science workflow requires specialist knowledge of clo
 * Setting up useful MLOps tools such as experiment trackers in Google Cloud, without needing a lot of cloud engineering knowledge.
 * Seamlessly integrating MLOps tools into machine learning workflows.
 
+Our vision is to provide a complete environment for training models with MLOps capabilities built-in. Right now we support model training and deployment through Vertex and TensorFlow, experiment tracking thanks to [Sacred](https://github.com/IDSIA/sacred), and data versioning through [DVC](https://dvc.org). In the future we want to not only expand these features, but also add:
+
+* Support for multiple ML frameworks.
+* Integration into model monitoring solutions.
+* Easy integration into infrastructure-as-code tools such as Terraform.
+
 # Pre-requisites
 
 * [A Google Cloud account](https://cloud.google.com).
@@ -65,7 +71,7 @@ edge model init hello-world
 edge model template hello-world
 ```
 
-n.b. when you run `edge init`, you will be prompted for a name for a cloud storage bucket. Remember that bucket names need to be globally-unique on GCP.
+n.b. when you run `edge init`, you will be prompted for a cloud storage bucket name. This bucket is used for tracking your project state, storing trained models, and storing versioned data. Remember that bucket names need to be globally-unique on GCP.
 
 ## Train and deploy
 
