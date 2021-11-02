@@ -118,6 +118,22 @@ edge experiments get-dashboard
     <img src="omniboard-screenshot.png"/>
 </p>
 
+To learn more, read our tutorial on [Tracking your experiments](tutorials/experiment_tracking.md).
+
+## Version data
+
+By using data version control you can always track the history of your data. Combined with experiment tracking, it means each model can be tied to precisely the dataset that was used when the model was trained.
+
+We use [DVC](https://dvc.org) for data versioning. To enable it, run:
+
+```
+edge dvc init
+```
+
+n.b. you need to be working in an existing Git repository before you can enable data versioning.
+
+To learn more, read our tutorial on [Versioning your data](tutorials/versioning_data.md).
+
 # Tutorials
 
 * [Project Setup](tutorials/setup.md)

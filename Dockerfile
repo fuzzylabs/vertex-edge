@@ -11,7 +11,7 @@ RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud
   && tar -C /usr/local/gcloud -xvf /tmp/google-cloud-sdk.tar.gz \
   && /usr/local/gcloud/google-cloud-sdk/install.sh \
   && /usr/local/gcloud/google-cloud-sdk/bin/gcloud components install alpha --quiet \
-  && echo "" \
+  && pip install dvc \
   && rm /tmp/google-cloud-sdk.tar.gz
 
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
