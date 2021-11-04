@@ -71,7 +71,7 @@ Now let's create something a bit more interesting. A simple classifier:
 TODO
 ```
 
-## Training and deploying the model
+## Training the model
 
 Now we can train the model simply by running
 
@@ -85,4 +85,14 @@ The good news is that you don't need to modify the code in any way in order to t
 
 ```
 RUN_ON_VERTEX=True python models/hello-world/train.py
+```
+
+## Deploying the model
+
+Once you've trained the model on Vertex as above, then you can also deploy it to Vertex. One important thing to remember, however, is that models trained locally _cannot_ be deployed to Vertex.
+
+Because vertex:edge keeps track of all the models you've trained, it's very easy to deploy the most recently trained model, like this:
+
+```
+edge model deploy hello-world
 ```
