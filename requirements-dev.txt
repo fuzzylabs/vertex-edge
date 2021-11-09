@@ -1,0 +1,5 @@
+# Packages used for development but not required for the library distribution
+
+pylint
+black
+twine

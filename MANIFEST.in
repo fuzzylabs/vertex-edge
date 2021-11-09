@@ -1,0 +1,2 @@
+include src/edge/k8s/*.yaml
+recursive-include src/edge/templates/ *

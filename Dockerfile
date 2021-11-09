@@ -11,7 +11,7 @@ RUN curl https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud
   && tar -C /usr/local/gcloud -xvf /tmp/google-cloud-sdk.tar.gz \
   && /usr/local/gcloud/google-cloud-sdk/install.sh \
   && /usr/local/gcloud/google-cloud-sdk/bin/gcloud components install alpha --quiet \
-  && echo "" \
+  && pip install dvc \
   && rm /tmp/google-cloud-sdk.tar.gz
 
 ENV PATH $PATH:/usr/local/gcloud/google-cloud-sdk/bin
@@ -27,3 +27,18 @@ RUN curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 |
 WORKDIR /project/
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install edge
+COPY setup.py setup.py
+COPY MANIFEST.in MANIFEST.in
+COPY edge edge
+COPY src/ src/
+
+COPY src/edge/k8s/omniboard.yaml /omniboard.yaml
+
+RUN ./setup.py build
+RUN ./setup.py install
+
+# Copy the entrypoint script
+COPY edge_docker_entrypoint.sh /edge_docker_entrypoint.sh
+ENTRYPOINT ["/edge_docker_entrypoint.sh"]
