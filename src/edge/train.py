@@ -172,8 +172,10 @@ class Trainer():
         with open(json_path, "w") as train_json:
             if self.target == TrainingTarget.VERTEX:
                 self._run_on_vertex()
-                model = self._create_model_on_vertex()
-                train_json.write(to_json(TrainedModel.from_vertex_model(model)))
+
+                try:
+                    model = self._create_model_on_vertex()
+                    train_json.write(to_json(TrainedModel.from_vertex_model(model)))
             else:
                 self._run_locally()
                 train_json.write(to_json(TrainedModel.from_local_model()))
