@@ -8,9 +8,9 @@
 
 Adopting MLOps into a data science workflow requires specialist knowledge of cloud engineering. As a data scientist, you just want to train your models and get on with your life. **vertex:edge** provides an environment for training and deploying models on Google Cloud that leverages the best available open-source MLOps tools to track your experiments and version your data.
 
-<p align="center">
+<!---<p align="center">
     <img src="demo.gif"/>
-</p>
+</p>--->
 
 ## Contents
 
