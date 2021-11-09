@@ -62,7 +62,7 @@ class Trainer():
     name = None
     # TODO: Remove hard-coded Git link
     pip_requirements = [
-        "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git@release/v0.2.0"
+        "vertex-edge @ git+https://github.com/fuzzylabs/vertex-edge.git"
     ]
     vertex_staging_path = None
     vertex_output_path = None
