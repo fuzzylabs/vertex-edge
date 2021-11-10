@@ -57,7 +57,7 @@ def get_mongodb_password():
     with SubStepTUI("Getting MongoDB password"):
         try:
             return subprocess.check_output(
-                'kubectl get secret --namespace default mongodb -o jsonpath="{.data.mongodb-password}" | '
+                'kubectl get secret --namespace default mongodb -o jsonpath="{.data.mongodb-passwords}" | '
                 'base64 --decode',
                 shell=True,
             ).decode("utf-8")
@@ -102,7 +102,7 @@ def install_mongodb() -> (str, str):
                 subprocess.check_output(
                     """
                     helm repo add bitnami https://charts.bitnami.com/bitnami
-                    helm upgrade -i --wait mongodb bitnami/mongodb --set auth.username=sacred,auth.database=sacred
+                    helm upgrade -i --wait mongodb bitnami/mongodb --version 10.29.1 --set auth.username=sacred,auth.database=sacred
                 """,
                     shell=True,
                 )
