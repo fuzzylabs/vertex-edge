@@ -24,3 +24,6 @@ questionary==1.10.0
 
 ## TODO: do we need Dill?
 #dill==0.3.4
+
+# Model templating
+cookiecutter=1.7.3
