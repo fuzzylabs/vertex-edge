@@ -176,7 +176,7 @@ class Trainer():
                 try:
                     model = self._create_model_on_vertex()
                     train_json.write(to_json(TrainedModel.from_vertex_model(model)))
-                except e:
+                except Exception as e:
                     logging.info("Unable to capture saved model. This might mean the model has not been saved by the training script")
             else:
                 self._run_locally()
