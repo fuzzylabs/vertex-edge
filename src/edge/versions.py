@@ -2,7 +2,7 @@ import json
 import subprocess
 from dataclasses import dataclass
 from .exception import EdgeException
-
+from sys import platform
 
 @dataclass
 class Version:
@@ -31,9 +31,15 @@ class Version:
         return f"{self.major}.{self.minor}.{self.patch}"
 
 
+def get_os_which_command() -> str:
+    if platform == "linux" or platform == "linux2" or platform == "darwin":
+        return "which"
+    elif platform == "win32":
+        return "where"
+
 def command_exist(command) -> bool:
     try:
-        subprocess.check_output(f"which {command}", shell=True, stderr=subprocess.STDOUT)
+        subprocess.check_output(f"{get_os_which_command()} {command}", shell=True, stderr=subprocess.STDOUT)
         return True
     except subprocess.CalledProcessError:
         return False
@@ -56,7 +62,7 @@ def get_gcloud_version(component: str = "core") -> Version:
 def get_kubectl_version() -> Version:
     if not command_exist("kubectl"):
         raise EdgeException("Unable to locate kubectl. Please visit https://kubernetes.io/docs/tasks/tools/ for installation instructions.")
-    version_string = get_version("kubectl version --client=true --short -o json")
+    version_string = get_version("kubectl version --client=true -o json")
     return Version.from_string(json.loads(version_string)["clientVersion"]["gitVersion"])
 
 
